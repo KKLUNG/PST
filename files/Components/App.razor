@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
+    <link rel="stylesheet" href="_content/BaseComponents/base-components.css" />
+    <link rel="stylesheet" href="app.css" />
+    <HeadOutlet @rendermode="RenderModeForPage" />
+</head>
+<body>
+    <Routes @rendermode="RenderModeForPage" />
+    <script src="_framework/blazor.web.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+</body>
+</html>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    // 系統頁面使用互動式伺服器端；登入、錯誤頁使用靜態伺服器端轉譯 (才能寫入登入 Cookie)
+    // 關閉預先轉譯，避免頁面載入時查詢資料庫兩次
+    private static readonly IComponentRenderMode InteractiveServerNoPrerender = new InteractiveServerRenderMode(prerender: false);
+
+    private IComponentRenderMode? RenderModeForPage =>
+        HttpContext.Request.Path.StartsWithSegments("/Account") || HttpContext.Request.Path.StartsWithSegments("/Error")
+            ? null
+            : InteractiveServerNoPrerender;
+}

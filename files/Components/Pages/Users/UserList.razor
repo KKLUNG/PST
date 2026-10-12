@@ -1,0 +1,139 @@
+@page "/users"
+@attribute [Authorize]
+@inject UserService UserService
+@inject BaseDialogService Dialog
+@inject BaseNotifier Notifier
+
+<PageTitle>使用者維護 - 使用者管理系統</PageTitle>
+<SectionContent SectionName="breadcrumb">系統管理 &gt; 使用者維護</SectionContent>
+
+<!-- ========== 查詢條件 ========== -->
+<BaseQueryPanel OnSearch="SearchAsync" OnClear="ClearAsync" Busy="loading">
+    <BaseField Label="帳號">
+        <BaseTextBox @bind-Value="query.Username" />
+    </BaseField>
+    <BaseField Label="電子郵件">
+        <BaseTextBox @bind-Value="query.Email" />
+    </BaseField>
+    <BaseField Label="姓名">
+        <BaseTextBox @bind-Value="query.FullName" />
+    </BaseField>
+    <BaseField Label="狀態">
+        <BaseSelect @bind-Value="query.IsActive" Options="statusOptions" AllText="－ 全部 －" />
+    </BaseField>
+</BaseQueryPanel>
+
+<!-- ========== 查詢結果 ========== -->
+<BaseDataGrid Items="users" Loading="loading">
+    <ToolBarContent>
+        <BaseButton Text="新增" AccessKey="A" Kind="BaseButtonKind.Primary" Icon="@Icons.Material.Filled.Add" OnClick="CreateAsync" />
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Username" Title="帳號" />
+        <PropertyColumn Property="x => x.Email" Title="電子郵件" />
+        <PropertyColumn Property="x => x.FullName" Title="姓名" />
+        <TemplateColumn Title="狀態" CellClass="text-center" SortBy="x => x.IsActive">
+            <CellTemplate>
+                @if (context.Item.IsActive)
+                {
+                    <span class="status-active">啟用</span>
+                }
+                else
+                {
+                    <span class="status-inactive">停用</span>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.CreatedDate" Title="建立日期" Format="yyyy/MM/dd" CellClass="text-center" />
+        <PropertyColumn Property="x => x.LastLoginDate" Title="最後登入" Format="yyyy/MM/dd HH:mm" CellClass="text-center" />
+        <TemplateColumn Title="操作" Sortable="false" CellClass="text-center">
+            <CellTemplate>
+                <BaseButton Text="編輯" Icon="@Icons.Material.Filled.Edit" OnClick="() => EditAsync(context.Item)" />
+                <BaseButton Text="刪除" Kind="BaseButtonKind.Danger" Icon="@Icons.Material.Filled.Delete" OnClick="() => DeleteAsync(context.Item)" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</BaseDataGrid>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private static readonly BaseOption<bool?>[] statusOptions =
+    [
+        new(true, "啟用"),
+        new(false, "停用"),
+    ];
+
+    private UserQuery query = new();
+    private List<UserDto> users = new();
+    private bool loading;
+
+    protected override Task OnInitializedAsync() => SearchAsync();
+
+    private async Task SearchAsync()
+    {
+        loading = true;
+        try
+        {
+            users = await UserService.QueryUsersAsync(query);
+        }
+        catch (Exception ex)
+        {
+            Notifier.Error($"查詢失敗：{ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private Task ClearAsync()
+    {
+        query = new UserQuery();
+        return SearchAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        if (await Dialog.ShowFormAsync<UserEditDialog>("使用者新增"))
+        {
+            await SearchAsync();
+        }
+    }
+
+    private async Task EditAsync(UserDto user)
+    {
+        var parameters = new DialogParameters { { nameof(UserEditDialog.UserId), user.UserId } };
+        if (await Dialog.ShowFormAsync<UserEditDialog>("使用者編輯", parameters))
+        {
+            await SearchAsync();
+        }
+    }
+
+    private async Task DeleteAsync(UserDto user)
+    {
+        // 不允許刪除目前登入的帳號
+        var state = await AuthenticationState;
+        if (state.User.FindFirstValue(ClaimTypes.NameIdentifier) == user.UserId.ToString())
+        {
+            Notifier.Warning("不可刪除目前登入的帳號");
+            return;
+        }
+
+        if (!await Dialog.ConfirmAsync($"確認要刪除使用者「{user.Username}」嗎？此操作無法復原。", "刪除確認", "刪除", danger: true))
+        {
+            return;
+        }
+
+        try
+        {
+            await UserService.DeleteUserAsync(user.UserId);
+            Notifier.Success($"使用者「{user.Username}」已刪除");
+            await SearchAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Notifier.Error($"刪除失敗：{ex.Message}");
+        }
+    }
+}

@@ -1,6 +1,6 @@
 /* ============================================
-   使用者管理系統 - 版面樣式
-   風格：傳統後台系統 (綠色標題列、左側樹狀選單、查詢條件表格)
+   使用者管理系統 - 版面樣式 (頁首、麵包屑、左側選單、登入頁)
+   元件樣式 (查詢區、表格、按鈕) 見 BaseComponents 的 base-components.css
    ============================================ */
 
 :root {
@@ -10,14 +10,9 @@
     --green-pale: #e7f2d8;
     --green-paler: #f4f9ee;
     --border: #a8c88b;
-    --text: #222;
     --text-muted: #666;
     --link: #1a4fa0;
     --danger: #c0392b;
-}
-
-* {
-    box-sizing: border-box;
 }
 
 html, body {
@@ -28,7 +23,7 @@ html, body {
 body {
     font-family: "Microsoft JhengHei", "微軟正黑體", "PMingLiU", "新細明體", Arial, sans-serif;
     font-size: 13px;
-    color: var(--text);
+    color: #222;
     background: #fff;
 }
 
@@ -64,12 +59,16 @@ a:hover {
     letter-spacing: 2px;
 }
 
-.sys-title {
-    flex: 1;
+.sys-title,
+.sys-user {
     display: flex;
     align-items: center;
-    justify-content: center;
     background: linear-gradient(to bottom, #c4e59a 0%, var(--green-light) 45%, var(--green-main) 100%);
+}
+
+.sys-title {
+    flex: 1;
+    justify-content: center;
     font-size: 20px;
     font-weight: bold;
     color: #1e3d0c;
@@ -77,11 +76,8 @@ a:hover {
 }
 
 .sys-user {
-    display: flex;
-    align-items: center;
     gap: 8px;
     padding: 0 10px;
-    background: linear-gradient(to bottom, #c4e59a 0%, var(--green-light) 45%, var(--green-main) 100%);
 }
 
 .sys-user-name {
@@ -95,6 +91,20 @@ a:hover {
 .inline-form {
     display: inline;
     margin: 0;
+}
+
+.sys-logout {
+    font: inherit;
+    font-size: 12px;
+    padding: 1px 8px;
+    background: linear-gradient(to bottom, #ffffff, #e1e1e1);
+    border: 1px solid #8e8e8e;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.sys-logout:hover {
+    background: linear-gradient(to bottom, #fffbe8, #f0dfa6);
 }
 
 /* ========== 麵包屑 ========== */
@@ -153,7 +163,6 @@ a:hover {
 .tree summary {
     cursor: pointer;
     padding: 1px 2px;
-    color: #333;
 }
 
 .tree summary::marker {
@@ -164,6 +173,7 @@ a:hover {
     display: block;
     padding: 1px 4px;
     color: #333;
+    border: 1px solid transparent;
 }
 
 .tree-leaf a::before {
@@ -172,174 +182,19 @@ a:hover {
     color: var(--green-main);
 }
 
-.tree-leaf.active a {
+.tree-leaf a.active {
     background: #ffeaa0;
-    border: 1px solid #e0c060;
+    border-color: #e0c060;
     font-weight: bold;
 }
 
-/* ========== 查詢條件 / 表單表格 ========== */
-.query-table {
-    width: 100%;
-    border-collapse: collapse;
-    border: 1px solid var(--border);
-    margin-bottom: 6px;
-}
-
-.query-table th,
-.query-table td {
-    border: 1px solid var(--border);
-    padding: 3px 6px;
-    vertical-align: middle;
-}
-
-.query-table th {
-    width: 14%;
-    background: var(--green-pale);
-    font-weight: normal;
-    text-align: left;
-    white-space: nowrap;
-}
-
-.query-table th::before {
-    content: "\25CB ";
-    color: var(--green-dark);
-}
-
-.query-table td {
-    background: #fff;
-}
-
-.required {
-    color: var(--danger);
-    margin-left: 2px;
-}
-
-/* ========== 輸入欄位 ========== */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-select {
-    font: inherit;
-    height: 22px;
-    padding: 1px 4px;
-    border: 1px solid #7f9db9;
-    background: #fff;
-}
-
-input[type="text"],
-input[type="email"],
-input[type="password"] {
-    width: 220px;
-    max-width: 100%;
-}
-
-input[readonly] {
-    background: #eee;
-    color: #555;
-}
-
-input:focus,
-select:focus {
-    outline: 1px solid #f0b400;
-    background: #fffbe0;
-}
-
-/* ========== 按鈕 ========== */
-.button-bar {
-    text-align: center;
-    margin: 6px 0 10px;
-}
-
-.btn {
-    display: inline-block;
-    font: inherit;
-    padding: 2px 12px;
-    margin: 0 2px;
-    color: #000;
-    background: linear-gradient(to bottom, #ffffff, #e1e1e1);
-    border: 1px solid #8e8e8e;
-    border-radius: 2px;
-    cursor: pointer;
-    line-height: 18px;
-}
-
-.btn:hover {
-    background: linear-gradient(to bottom, #fffbe8, #f0dfa6);
-    border-color: #c4a24a;
-    text-decoration: none;
-}
-
-.btn-small {
-    padding: 0 8px;
-    font-size: 12px;
-}
-
-.btn-link {
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--link);
-    cursor: pointer;
-    font: inherit;
-}
-
-.btn-link:hover {
-    text-decoration: underline;
-}
-
-.btn-link.danger {
-    color: var(--danger);
-}
-
-/* ========== 資料清單 ========== */
-.grid-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 4px 0;
-}
-
-.grid-wrapper {
-    overflow-x: auto;
-}
-
-.data-grid {
-    width: 100%;
-    border-collapse: collapse;
-    border: 1px solid var(--border);
-}
-
-.data-grid th,
-.data-grid td {
-    border: 1px solid var(--border);
-    padding: 3px 6px;
-    white-space: nowrap;
-}
-
-.data-grid th {
-    background: linear-gradient(to bottom, var(--green-light), var(--green-main));
-    color: #fff;
-    font-weight: bold;
+/* ========== 共用文字樣式 ========== */
+.text-center {
     text-align: center;
 }
 
-.data-grid tbody tr:nth-child(even) {
-    background: var(--green-paler);
-}
-
-.data-grid tbody tr:hover {
-    background: #fff8d0;
-}
-
-.data-grid .center {
-    text-align: center;
-}
-
-.data-grid .empty {
-    text-align: center;
+.text-muted {
     color: var(--text-muted);
-    padding: 12px;
 }
 
 .status-active {
@@ -350,53 +205,6 @@ select:focus {
 .status-inactive {
     color: var(--danger);
     font-weight: bold;
-}
-
-/* ========== 訊息與驗證 ========== */
-.msg {
-    padding: 5px 10px;
-    margin-bottom: 6px;
-    border: 1px solid;
-}
-
-.msg-success {
-    background: #eaf7e1;
-    border-color: #8cc56b;
-    color: #2d6a12;
-}
-
-.msg-error {
-    background: #fdecea;
-    border-color: #e5a29b;
-    color: var(--danger);
-}
-
-.field-validation-error {
-    display: block;
-    color: var(--danger);
-    font-size: 12px;
-}
-
-.input-validation-error {
-    border-color: var(--danger) !important;
-    background: #fff6f5;
-}
-
-.validation-summary-errors {
-    color: var(--danger);
-}
-
-.validation-summary-errors ul {
-    margin: 0 0 6px;
-    padding-left: 20px;
-}
-
-.validation-summary-valid {
-    display: none;
-}
-
-.text-muted {
-    color: var(--text-muted);
 }
 
 .section-title {
@@ -413,6 +221,18 @@ select:focus {
     line-height: 1.8;
 }
 
+.msg {
+    padding: 5px 10px;
+    margin-bottom: 8px;
+    border: 1px solid;
+}
+
+.msg-error {
+    background: #fdecea;
+    border-color: #e5a29b;
+    color: var(--danger);
+}
+
 /* ========== 登入頁 ========== */
 .login-main {
     display: flex;
@@ -420,6 +240,7 @@ select:focus {
     padding: 60px 16px;
     background: var(--green-paler);
     min-height: calc(100vh - 74px);
+    box-sizing: border-box;
 }
 
 .login-box {
@@ -441,13 +262,49 @@ select:focus {
     padding: 12px;
 }
 
-.login-box .query-table th {
-    width: 30%;
+.login-input {
+    font: inherit;
+    width: 100%;
+    height: 24px;
+    padding: 1px 4px;
+    border: 1px solid #7f9db9;
+    box-sizing: border-box;
 }
 
-.login-box input[type="text"],
-.login-box input[type="password"] {
+.login-input:focus {
+    outline: 1px solid #f0b400;
+    background: #fffbe0;
+}
+
+.login-input.invalid {
+    border-color: var(--danger);
+}
+
+.validation-message {
     width: 100%;
+    color: var(--danger);
+    font-size: 12px;
+}
+
+.login-actions {
+    text-align: center;
+    margin: 10px 0 4px;
+}
+
+.login-button {
+    display: inline-block;
+    font: inherit;
+    padding: 2px 16px;
+    color: #000;
+    background: linear-gradient(to bottom, #ffffff, #e1e1e1);
+    border: 1px solid #8e8e8e;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.login-button:hover {
+    background: linear-gradient(to bottom, #fffbe8, #f0dfa6);
+    text-decoration: none;
 }
 
 .login-hint {
@@ -455,6 +312,26 @@ select:focus {
     font-size: 12px;
     color: var(--text-muted);
     text-align: center;
+}
+
+/* ========== Blazor 錯誤提示 ========== */
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
 }
 
 /* ========== 窄螢幕 ========== */
@@ -488,14 +365,5 @@ select:focus {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid var(--border);
-    }
-
-    .query-table,
-    .query-table tbody,
-    .query-table tr,
-    .query-table th,
-    .query-table td {
-        display: block;
-        width: 100%;
     }
 }

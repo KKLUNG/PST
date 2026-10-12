@@ -9,7 +9,7 @@
     <RootNamespace>BlazorUserManagement</RootNamespace>
     <Version>1.0.0</Version>
     <Authors>IT Team</Authors>
-    <Description>ASP.NET Core Razor Pages 使用者管理系統，包含登入與使用者維護功能</Description>
+    <Description>Blazor 使用者管理系統，以 BaseComponents 底層元件建置，包含登入與使用者維護功能</Description>
   </PropertyGroup>
 
   <!-- NuGet 套件依賴 -->
@@ -36,6 +36,11 @@
     <!-- Logging -->
     <PackageReference Include="Serilog" Version="3.1.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- 共用底層元件庫 -->
+  <ItemGroup>
+    <ProjectReference Include="..\BaseComponents\BaseComponents.csproj" />
   </ItemGroup>
 
 </Project>

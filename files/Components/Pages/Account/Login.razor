@@ -1,0 +1,93 @@
+@page "/Account/Login"
+@layout LoginLayout
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+@*
+    登入頁使用靜態伺服器端轉譯 (見 App.razor)，才能在回應中寫入登入 Cookie；
+    因此使用 Blazor 內建的 InputText，而非需要互動模式的 MudBlazor / BaseComponents 元件
+*@
+
+<PageTitle>系統登入 - 使用者管理系統</PageTitle>
+<SectionContent SectionName="breadcrumb">系統登入</SectionContent>
+
+<div class="login-box">
+    <div class="login-box-title">系統登入</div>
+    <div class="login-box-body">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="msg msg-error">@errorMessage</div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginAsync" FormName="login">
+            <DataAnnotationsValidator />
+            <div class="base-field-grid" style="--base-columns: 1">
+                <BaseField Label="帳號">
+                    <InputText @bind-Value="Input.Username" class="login-input" autocomplete="username" autofocus />
+                    <ValidationMessage For="() => Input.Username" />
+                </BaseField>
+                <BaseField Label="密碼">
+                    <InputText @bind-Value="Input.Password" type="password" class="login-input" autocomplete="current-password" />
+                    <ValidationMessage For="() => Input.Password" />
+                </BaseField>
+            </div>
+            <div class="login-actions">
+                <button type="submit" class="login-button" accesskey="l">登入(L)</button>
+            </div>
+        </EditForm>
+
+        <div class="login-hint">測試帳號：admin / admin123</div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm] private LoginRequest Input { get; set; } = new();
+
+    /// <summary>登入後要返回的頁面 (未登入時被導向登入頁的原網址)</summary>
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    private string? errorMessage;
+
+    protected override void OnInitialized()
+    {
+        // 已登入則直接進入系統
+        if (HttpMethods.IsGet(HttpContext.Request.Method) && HttpContext.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo(SafeReturnUrl);
+        }
+    }
+
+    private async Task LoginAsync()
+    {
+        var response = await AuthService.LoginAsync(Input);
+        if (!response.Success || response.User is null)
+        {
+            errorMessage = response.Message;
+            return;
+        }
+
+        // 建立登入身分並寫入 Cookie
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, response.User.UserId.ToString()),
+            new(ClaimTypes.Name, response.User.Username),
+            new("FullName", response.User.FullName ?? ""),
+        };
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+        Navigation.NavigateTo(SafeReturnUrl, forceLoad: true);
+    }
+
+    /// <summary>
+    /// 只允許導回本站網址，避免開放式重新導向
+    /// </summary>
+    private string SafeReturnUrl =>
+        !string.IsNullOrEmpty(ReturnUrl) && ReturnUrl.StartsWith('/') && !ReturnUrl.StartsWith("//") && !ReturnUrl.StartsWith("/\\")
+            ? ReturnUrl
+            : "/";
+}

@@ -1,0 +1,17 @@
+@inherits LayoutComponentBase
+@* 登入頁、錯誤頁使用的版面 (不含選單，靜態轉譯) *@
+
+<header class="sys-header">
+    <div class="sys-logo">
+        <span class="sys-logo-text">公司名稱</span>
+    </div>
+    <div class="sys-title">使用者管理系統</div>
+</header>
+<div class="sys-breadcrumb">
+    <span class="crumb-arrow">&#9658;</span>
+    <SectionOutlet SectionName="breadcrumb" />
+</div>
+
+<main class="login-main">
+    @Body
+</main>

@@ -1,8 +1,12 @@
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.WebEncoders;
+using BaseComponents;
+using BlazorUserManagement.Components;
 using BlazorUserManagement.Data;
 using BlazorUserManagement.Services;
 
@@ -37,15 +41,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
 
-// ========== 加入 Razor Pages ==========
-// 預設所有頁面都需要登入，僅登入頁與錯誤頁開放匿名存取
-builder.Services.AddRazorPages(options =>
-{
-    options.Conventions.AuthorizeFolder("/");
-    options.Conventions.AllowAnonymousToPage("/Account/Login");
-    options.Conventions.AllowAnonymousToPage("/Error");
-});
+// ========== 加入 Blazor 元件 (互動式伺服器端) ==========
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+// ========== 加入共用底層元件 (含 MudBlazor) ==========
+builder.Services.AddBaseComponents();
 
 // ========== 中文直接輸出 ==========
 // 預設會將中文編碼成 &#x4F7F; 形式（畫面正常但原始碼難以閱讀），改為允許所有 Unicode 字元；
@@ -95,27 +98,36 @@ using (var scope = app.Services.CreateScope())
 // ========== 設定 HTTP 管線 ==========
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseRouting();
 
 // ========== 驗證與授權中間件 ==========
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
 // ========== 路由設定 ==========
-app.MapRazorPages();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+// ========== 登出 ==========
+// 由頁首的登出按鈕以 POST 表單送出 (含防偽權杖，[FromForm] 參數會觸發防偽驗證)
+app.MapPost("/Account/Logout", async (HttpContext httpContext, [FromForm] string? returnUrl) =>
+{
+    await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.LocalRedirect("/Account/Login");
+});
 
 // ========== 健康檢查端點 (選用) ==========
-app.MapGet("/health", () => new { status = "ok", timestamp = DateTime.UtcNow }).AllowAnonymous();
+app.MapGet("/health", () => new { status = "ok", timestamp = DateTime.UtcNow });
 
 // ========== 記錄應用啟動資訊 ==========
 Console.WriteLine($"========================================");
-Console.WriteLine($"🚀 使用者管理系統 (Razor Pages) 已啟動");
+Console.WriteLine($"🚀 使用者管理系統 (Blazor) 已啟動");
 Console.WriteLine($"環境: {app.Environment.EnvironmentName}");
 Console.WriteLine($"時間: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
 Console.WriteLine($"========================================");

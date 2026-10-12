@@ -1,0 +1,108 @@
+@* 使用者新增／編輯對話框：帶 UserId 為編輯，不帶為新增 *@
+@inject UserService UserService
+@inject BaseNotifier Notifier
+
+@if (loaded)
+{
+    <BaseFormDialog Model="model" OnSave="SaveAsync">
+        <BaseField Label="帳號" Required="true">
+            <BaseTextBox @bind-Value="model.Username" ReadOnly="@IsEditMode" autocomplete="off" />
+        </BaseField>
+        <BaseField Label="電子郵件" Required="true">
+            <BaseTextBox @bind-Value="model.Email" InputType="InputType.Email" />
+        </BaseField>
+        <BaseField Label="姓名">
+            <BaseTextBox @bind-Value="model.FullName" />
+        </BaseField>
+        <BaseField Label="狀態">
+            <BaseCheckBox @bind-Value="model.IsActive" Label="啟用此使用者" />
+        </BaseField>
+        <BaseField Label="@(IsEditMode ? "新密碼" : "密碼")" Required="@(!IsEditMode)" ColSpan="2">
+            <BaseTextBox @bind-Value="model.Password" InputType="InputType.Password" autocomplete="new-password" />
+            <span class="text-muted">
+                @(IsEditMode ? "若要變更密碼請輸入新密碼（至少 6 個字元），留空則維持原密碼" : "至少 6 個字元")
+            </span>
+        </BaseField>
+    </BaseFormDialog>
+}
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    /// <summary>要編輯的使用者 ID，未提供時為新增</summary>
+    [Parameter] public int? UserId { get; set; }
+
+    private bool IsEditMode => UserId.HasValue;
+
+    private UserCreateEditRequest model = new();
+    private bool loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode)
+        {
+            try
+            {
+                var user = await UserService.GetUserByIdAsync(UserId!.Value);
+                model = new UserCreateEditRequest
+                {
+                    Username = user.Username,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    IsActive = user.IsActive,
+                };
+            }
+            catch (InvalidOperationException)
+            {
+                Notifier.Error("找不到指定的使用者");
+                MudDialog?.Cancel();
+                return;
+            }
+        }
+
+        loaded = true;
+    }
+
+    private async Task<bool> SaveAsync()
+    {
+        if (!IsEditMode && string.IsNullOrWhiteSpace(model.Password))
+        {
+            Notifier.Error("新增使用者時必須設定密碼");
+            return false;
+        }
+
+        // 不可停用目前登入的帳號，避免把自己鎖在系統外
+        if (IsEditMode && !model.IsActive)
+        {
+            var state = await AuthenticationState;
+            if (state.User.FindFirstValue(ClaimTypes.NameIdentifier) == UserId!.Value.ToString())
+            {
+                Notifier.Error("不可停用目前登入的帳號");
+                return false;
+            }
+        }
+
+        try
+        {
+            if (IsEditMode)
+            {
+                await UserService.UpdateUserAsync(UserId!.Value, model);
+                Notifier.Success($"使用者「{model.Username}」已更新");
+            }
+            else
+            {
+                await UserService.CreateUserAsync(model);
+                Notifier.Success($"使用者「{model.Username}」已新增");
+            }
+            return true;
+        }
+        catch (InvalidOperationException ex)
+        {
+            // 帳號或電子郵件重複等商業規則錯誤
+            Notifier.Error(ex.Message);
+            return false;
+        }
+    }
+}

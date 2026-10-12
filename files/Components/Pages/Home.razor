@@ -1,0 +1,17 @@
+@page "/"
+@attribute [Authorize]
+
+<PageTitle>首頁 - 使用者管理系統</PageTitle>
+<SectionContent SectionName="breadcrumb">首頁</SectionContent>
+
+<AuthorizeView>
+    <div class="base-field-grid">
+        <BaseField Label="登入帳號">@context.User.Identity?.Name</BaseField>
+        <BaseField Label="姓名">@context.User.FindFirstValue("FullName")</BaseField>
+    </div>
+</AuthorizeView>
+
+<div class="section-title">系統功能</div>
+<ul class="link-list">
+    <li><a href="users">使用者維護</a>：依帳號、電子郵件、姓名、狀態查詢使用者，並可新增、編輯、刪除</li>
+</ul>
