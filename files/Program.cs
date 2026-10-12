@@ -1,5 +1,8 @@
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.WebEncoders;
 using BlazorUserManagement.Data;
 using BlazorUserManagement.Services;
 
@@ -41,6 +44,14 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/");
     options.Conventions.AllowAnonymousToPage("/Account/Login");
     options.Conventions.AllowAnonymousToPage("/Error");
+});
+
+// ========== 中文直接輸出 ==========
+// 預設會將中文編碼成 &#x4F7F; 形式（畫面正常但原始碼難以閱讀），改為允許所有 Unicode 字元；
+// <、>、&、" 等 HTML 特殊字元仍會被編碼，不影響安全性
+builder.Services.Configure<WebEncoderOptions>(options =>
+{
+    options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All);
 });
 
 // ========== 設定日誌 ==========
