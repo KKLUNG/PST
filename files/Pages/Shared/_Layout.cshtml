@@ -1,5 +1,10 @@
 @{
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString();
+    // 編輯既有使用者時，選單反白「使用者查詢」；不帶 id 的新增模式才反白「使用者新增」
+    if (currentPage == "/Users/Edit" && ViewContext.RouteData.Values["id"] != null)
+    {
+        currentPage = "/Users/Index";
+    }
     var fullName = User.FindFirstValue("FullName");
     var message = TempData["Message"] as string;
     var messageType = TempData["MessageType"] as string ?? "success";
