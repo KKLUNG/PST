@@ -58,8 +58,8 @@
 | `BaseTextBox` | 文字方框 | `Type`（Text／Password／Email…）、`MaxLength`、`AutoNext`、`UpperCase`、`Width` |
 | `BaseTextArea` | 多行文字 | `Rows`、`MaxLength` |
 | `BaseSelect<TValue>` | 下拉式選單 | `Options`、`AllText`（加「全部」選項）、`Placeholder` |
-| `BaseNumeric<TValue>` | 數字方框 | `Min`、`Max`、`ShowStep` |
-| `BaseDatePicker` | 日期（可輸入或點日曆） | `Roc`（民國年）、`Min`、`Max` |
+| `BaseNumeric<TValue>` | 數字方框（千分位） | `IntegerDigits`、`DecimalDigits`、`FixedDecimals`、`ThousandSeparator`、`Min`、`Max` |
+| `BaseDatePicker` | 日期（可輸入或點日曆） | `Roc`（民國年；誤輸入西元年會自動修正）、`Min`、`Max` |
 | `BaseCheckBox` | 核取方塊 | `Label` |
 | `BaseRadioGroup<TValue>` | 單選按鈕群組 | `Options`、`Vertical` |
 | `BaseButton` | 按鈕 | `Kind`（Default／Primary／Danger）、`Icon`、`AccessKey` |
@@ -67,6 +67,25 @@
 共通：
 - 皆支援 `@bind-Value`，以及 `ReadOnly`、`Disabled`。
 - 放在 `EditForm`（或 `BaseFormDialog`）內時，DataAnnotations 驗證訊息會**自動顯示在欄位下方**。
+
+**數字千分位（BaseNumeric）**：
+
+| 狀態 | 顯示 |
+|------|------|
+| 離開欄位 | `1,234,567.89`（千分位） |
+| 進入欄位 | `1234567.89`（原始數字，方便修改） |
+
+- `IntegerDigits` / `DecimalDigits`：整數、小數最多幾位，超過的輸入直接擋下；小數位數預設整數型別 0 位、其他 2 位。
+- `FixedDecimals="true"`：固定顯示小數位數（金額 `1,234.50`）。
+- `Min` / `Max`：超出範圍時自動修正為上下限；`Min` ≥ 0 時不可輸入負號。
+- 存入資料的永遠是數字，逗號只是顯示用。格式規則在 `BaseNumberFormat`（可直接用於清單、報表顯示，例如 `BaseNumberFormat.Format(金額, 0)`）。
+
+```razor
+<BaseNumeric @bind-Value="model.Amount" IntegerDigits="9" DecimalDigits="2" FixedDecimals="true" Min="0" />
+```
+
+**民國年日期**：`BaseDateFormat.ToRoc(日期)` 轉成 `115/10/12` 顯示；`TryParseRoc` 解析。
+在民國年欄位誤輸入西元年（例如 `2026/10/12`）時，會自動修正為 `115/10/12`，不會被當成民國 2026 年。
 
 ### 專用輸入元件
 
@@ -176,7 +195,7 @@ builder.Services.AddScoped<IBaseAddressProvider>(sp => sp.GetRequiredService<Com
             <BaseSelect @bind-Value="model.Unit" Options="unitOptions" />
         </BaseField>
         <BaseField Label="數量">
-            <BaseNumeric @bind-Value="model.Qty" Min="1" Max="9999" />
+            <BaseNumeric @bind-Value="model.Qty" Min="1" Max="9999" IntegerDigits="4" />
         </BaseField>
         <BaseField Label="日期">
             <BaseDatePicker @bind-Value="model.Date" Roc="true" />
@@ -273,6 +292,17 @@ builder.Services.AddScoped<IBaseAddressProvider>(sp => sp.GetRequiredService<Com
    並參考既有元件，在 `EditContext` 存在時加上 `<FluentValidationMessage For="@ValueExpression" />`。
 4. 樣式加在 `wwwroot/base-components.css`，類別名稱以 `base-` 開頭。
 5. 在「底層元件展示」頁加上示範，並在本文件的元件一覽補上說明。
+
+## 測試
+
+規則類別（`BaseNumberFormat`、`BaseDateFormat`、`BaseDateRangeRules`、`BasePhoneFormat`、`BaseUploadRules`、`BaseAccessKeys`）
+與各元件都有單元測試，位於 `tests/BaseComponents.Tests`：
+
+```powershell
+dotnet test tests\BaseComponents.Tests
+```
+
+修改元件後請先執行測試；新增元件或規則時請一併補上測試。
 
 ## 版本與升級
 

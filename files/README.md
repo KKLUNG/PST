@@ -9,6 +9,7 @@
 | 登入 | `/Account/Login` | 帳號密碼登入（Cookie 驗證），未登入時進入任何頁面都會導向此頁 |
 | 首頁 | `/` | 顯示登入者資訊與功能連結 |
 | 使用者維護 | `/users` | 依帳號、電子郵件、姓名、狀態查詢；新增、編輯（對話框）、刪除（確認視窗） |
+| 寄件登記（範例畫面） | `/demo/shipment` | 使用所有底層元件的完整輸入畫面：寄件人、收件人、郵件資訊、批次匯入；儲存後顯示「登記內容確認」供核對輸入結果（資料不寫入資料庫） |
 | 底層元件展示 | `/dev/components` | 所有基礎元件的外觀、用法與鍵盤操作示範（開發參考用） |
 
 規則：不可刪除或停用目前登入的帳號；編輯時密碼留空則維持原密碼；帳號建立後不可修改。
@@ -85,13 +86,15 @@ PST/
    │     ├─ Account/Login.razor  登入頁（靜態轉譯）
    │     ├─ Users/UserList.razor       使用者維護（查詢、清單、刪除）
    │     ├─ Users/UserEditDialog.razor 新增／編輯對話框
+   │     ├─ Demo/ShipmentRegister.razor 寄件登記（範例畫面）
    │     ├─ Dev/ComponentGallery.razor 底層元件展示
    │     ├─ Home.razor           首頁
    │     └─ Error.razor          錯誤頁
    ├─ Data/                      實體、DbContext、CreateDatabase.sql、CreateCommonTables.sql（參數檔、地址）
    ├─ Services/                  AuthService（登入驗證）、UserService（使用者 CRUD）、CommonDataService（參數檔、地址資料，供底層元件使用）
    ├─ wwwroot/app.css            版面樣式（元件樣式在 BaseComponents）
-   ├─ wwwroot/templates/         匯入範本檔（users-sample.csv）
+   ├─ Models/ShipmentForm.cs     寄件登記表單與驗證規則
+   ├─ wwwroot/templates/         匯入範本檔（users-sample.csv、shipments-sample.csv）
    ├─ Program.cs                 啟動設定、服務註冊、登出端點
    └─ appsettings.sample.json    設定檔範本（不含帳密）
 ```

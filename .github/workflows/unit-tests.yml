@@ -1,0 +1,23 @@
+# 每次推送或發 Pull Request 時自動執行單元測試，避免「改 A 錯 B」
+# (瀏覽器端對端測試需要 LocalDB 與 Edge，請在本機以 tests/run-e2e.ps1 執行)
+name: 單元測試
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 底層元件測試
+        run: dotnet test tests/BaseComponents.Tests/BaseComponents.Tests.csproj --logger "console;verbosity=normal"
+
+      - name: 系統測試
+        run: dotnet test tests/BlazorUserManagement.Tests/BlazorUserManagement.Tests.csproj --logger "console;verbosity=normal"
