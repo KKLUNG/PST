@@ -39,6 +39,7 @@
     [Parameter] public string? Class { get; set; }
 
     /// <summary>其他 HTML 屬性 (例如 autocomplete) 會加到輸入框外層</summary>
+    /// <remarks>預設為空集合：MudBlazor 的 UserAttributes 不接受 null</remarks>
     [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+    public Dictionary<string, object> AdditionalAttributes { get; set; } = new();
 }

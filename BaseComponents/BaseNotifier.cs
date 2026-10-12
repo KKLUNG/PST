@@ -20,8 +20,8 @@ namespace BaseComponents
 
         public void Warning(string message) => _snackbar.Add(message, Severity.Warning);
 
-        /// <summary>錯誤訊息需手動關閉，避免使用者來不及看到</summary>
+        /// <summary>錯誤訊息顯示較久 (8 秒)，避免使用者來不及看到</summary>
         public void Error(string message) =>
-            _snackbar.Add(message, Severity.Error, options => options.RequireInteraction = true);
+            _snackbar.Add(message, Severity.Error, options => options.VisibleStateDuration = 8000);
     }
 }

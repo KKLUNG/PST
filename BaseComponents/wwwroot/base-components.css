@@ -86,6 +86,7 @@
 
 .base-input .mud-input.mud-input-outlined {
     background: #fff;
+    font-size: 0.875rem;
 }
 
 .base-input .mud-input-slot.mud-input-root-outlined.mud-input-root-margin-dense,
