@@ -1,6 +1,6 @@
-# 使用者管理系統（ASP.NET Core Razor Pages）
+# 使用者管理系統（Blazor）
 
-以 ASP.NET Core 8 Razor Pages 製作的使用者帳號管理系統，包含登入、使用者查詢、新增、編輯、刪除。
+以 .NET 8 Blazor 製作的使用者帳號管理系統，畫面全部使用共用底層元件庫 [BaseComponents](../BaseComponents/README.md) 組成，同時作為底層元件的使用範例。
 
 ## 功能
 
@@ -8,11 +8,11 @@
 |------|------|------|
 | 登入 | `/Account/Login` | 帳號密碼登入（Cookie 驗證），未登入時進入任何頁面都會導向此頁 |
 | 首頁 | `/` | 顯示登入者資訊與功能連結 |
-| 使用者查詢 | `/Users` | 依帳號、電子郵件、姓名、狀態查詢；可編輯、刪除 |
-| 使用者新增 | `/Users/Edit` | 建立新帳號（密碼必填） |
-| 使用者編輯 | `/Users/Edit/{id}` | 修改資料；密碼留空則維持原密碼；帳號不可修改 |
+| 使用者維護 | `/users` | 依帳號、電子郵件、姓名、狀態查詢；新增、編輯（對話框）、刪除（確認視窗） |
 
-快速鍵：查詢 `Alt+Q`、清除 `Alt+C`、新增 `Alt+A`、存檔 `Alt+S`、返回 `Alt+R`。
+規則：不可刪除或停用目前登入的帳號；編輯時密碼留空則維持原密碼；帳號建立後不可修改。
+
+快速鍵：查詢 `Alt+Q`、清除 `Alt+C`、新增 `Alt+A`、存檔 `Alt+S`、登入 `Alt+L`。
 
 ## 執行前需要安裝
 
@@ -44,10 +44,10 @@ Copy-Item appsettings.sample.json appsettings.json
 
 ### 3. 執行
 
-Visual Studio 按 `F5`，或：
+以 Visual Studio 開啟上一層的 `PST.sln`，將 `BlazorUserManagement` 設為啟動專案後按 `F5`；或：
 
 ```powershell
-dotnet run
+dotnet run --project BlazorUserManagement.csproj
 ```
 
 ### 4. 登入
@@ -63,34 +63,41 @@ dotnet run
 ## 目錄結構
 
 ```
-├─ Data/
-│  ├─ User.cs                  使用者實體、查詢條件、表單模型
-│  ├─ ApplicationDbContext.cs  EF Core 資料庫上下文
-│  └─ CreateDatabase.sql       建立資料庫腳本（含測試帳號）
-├─ Services/
-│  ├─ AuthService.cs           登入驗證、BCrypt 密碼加密
-│  └─ UserService.cs           使用者查詢、新增、修改、刪除
-├─ Pages/
-│  ├─ Shared/_Layout.cshtml    系統版面（頁首、麵包屑、左側選單）
-│  ├─ Shared/_LoginLayout.cshtml  登入頁版面（無選單）
-│  ├─ Account/Login、Logout    登入／登出
-│  ├─ Users/Index              使用者查詢
-│  ├─ Users/Edit               使用者新增／編輯
-│  ├─ Index                    首頁
-│  └─ Error                    錯誤頁
-├─ wwwroot/css/site.css        版面樣式
-├─ Program.cs                  啟動設定、服務註冊
-├─ appsettings.sample.json     設定檔範本（不含帳密）
-└─ BlazorUserManagement.csproj
+PST/
+├─ PST.sln                       方案檔（元件庫 + 本系統）
+├─ BaseComponents/               共用底層元件庫（說明見其 README.md）
+└─ files/                        本系統
+   ├─ Components/
+   │  ├─ App.razor               HTML 外框、轉譯模式設定
+   │  ├─ Routes.razor            路由與登入檢查
+   │  ├─ Layout/                 MainLayout（頁首、麵包屑、選單）、NavMenu、LoginLayout
+   │  └─ Pages/
+   │     ├─ Account/Login.razor  登入頁（靜態轉譯）
+   │     ├─ Users/UserList.razor       使用者維護（查詢、清單、刪除）
+   │     ├─ Users/UserEditDialog.razor 新增／編輯對話框
+   │     ├─ Home.razor           首頁
+   │     └─ Error.razor          錯誤頁
+   ├─ Data/                      實體、DbContext、CreateDatabase.sql
+   ├─ Services/                  AuthService（登入驗證）、UserService（使用者 CRUD）
+   ├─ wwwroot/app.css            版面樣式（元件樣式在 BaseComponents）
+   ├─ Program.cs                 啟動設定、服務註冊、登出端點
+   └─ appsettings.sample.json    設定檔範本（不含帳密）
 ```
+
+## 新增一個功能頁
+
+1. 在 `Components/Pages/` 新增 `.razor`，加上 `@page "/網址"` 與 `@attribute [Authorize]`。
+2. 用 `<SectionContent SectionName="breadcrumb">` 設定麵包屑。
+3. 以 `BaseQueryPanel`、`BaseDataGrid`、`BaseFormDialog` 等底層元件組成畫面（可參考 `Users/`）。
+4. 在 `Components/Layout/NavMenu.razor` 加入選單連結。
 
 ## 自訂
 
-- **公司名稱／Logo**：`Pages/Shared/_Layout.cshtml` 與 `_LoginLayout.cshtml` 中的 `公司名稱`
-- **配色**：`wwwroot/css/site.css` 開頭的 `:root` 色彩變數
-- **左側選單**：`Pages/Shared/_Layout.cshtml` 的 `<nav class="sys-menu">`
+- **公司名稱／Logo**：`Components/Layout/MainLayout.razor` 與 `LoginLayout.razor` 中的 `公司名稱`
+- **版面配色**：`wwwroot/app.css` 開頭的色彩變數；元件配色見 BaseComponents 說明
 
 ## 備註
 
-- 專案名稱 `BlazorUserManagement` 沿用自原始範例，目前已改為 Razor Pages，未使用 Blazor。
+- 登入頁採靜態伺服器端轉譯，才能在回應中寫入登入 Cookie，因此使用 Blazor 內建的 `InputText` 而非 MudBlazor 元件；其餘頁面為互動式伺服器端。
 - `AuthService` 仍保留產生 JWT 的程式碼，目前登入改用 Cookie，JWT 未被使用。
+- Razor Pages 版本保留於 git 的 `razor-pages` 分支。
