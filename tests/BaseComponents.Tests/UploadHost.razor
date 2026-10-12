@@ -1,0 +1,13 @@
+@* 測試用頁面：OnUpload 中更新頁面自己的資料，確認畫面會跟著更新 *@
+<BaseFileUpload OnUpload="ImportAsync" />
+<span class="imported-count">@importedCount</span>
+
+@code {
+    private int importedCount;
+
+    private Task<BaseUploadResult> ImportAsync(IReadOnlyList<BaseUploadFile> files)
+    {
+        importedCount += files.Count;
+        return Task.FromResult(BaseUploadResult.Ok("完成"));
+    }
+}
