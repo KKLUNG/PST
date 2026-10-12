@@ -1,21 +1,22 @@
 @*
-    查詢條件區：表格式欄位 + 查詢(Q)／清除(C) 按鈕，在欄位中按 Enter 也會查詢
+    查詢條件區：表格式欄位 + 查詢(Y)／重設(C) 按鈕
+    - 鍵盤操作：欄位中按 Enter 跳到下一個欄位，最後一個欄位按 Enter 移到查詢按鈕
     用法：
-    <BaseQueryPanel OnSearch="SearchAsync" OnClear="ClearAsync">
+    <BaseQueryPanel OnSearch="SearchAsync" OnReset="ResetAsync">
         <BaseField Label="帳號"><BaseTextBox @bind-Value="query.Username" /></BaseField>
         <BaseField Label="姓名"><BaseTextBox @bind-Value="query.FullName" /></BaseField>
     </BaseQueryPanel>
 *@
-<form class="base-query-panel" @onsubmit="SearchAsync" @onsubmit:preventDefault="true">
+<form class="base-query-panel base-keyboard-nav" @onsubmit="SearchAsync" @onsubmit:preventDefault="true">
     <div class="base-field-grid" style="--base-columns: @Columns">
         @ChildContent
     </div>
     <div class="base-button-bar">
-        <BaseButton Text="@SearchText" AccessKey="Q" Kind="BaseButtonKind.Primary"
-                    Icon="@Icons.Material.Filled.Search" ButtonType="ButtonType.Submit" Disabled="@Busy" />
-        @if (OnClear.HasDelegate)
+        <BaseButton Text="@SearchText" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Search"
+                    ButtonType="ButtonType.Submit" Disabled="@Busy" />
+        @if (OnReset.HasDelegate)
         {
-            <BaseButton Text="@ClearText" AccessKey="C" OnClick="ClearAsync" Disabled="@Busy" />
+            <BaseButton Text="@ResetText" Icon="BaseIcon.Reset" OnClick="ResetAsync" Disabled="@Busy" />
         }
         @Buttons
     </div>
@@ -25,7 +26,7 @@
     /// <summary>查詢欄位 (BaseField)</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>額外按鈕，顯示在查詢、清除之後</summary>
+    /// <summary>額外按鈕，顯示在查詢、重設之後</summary>
     [Parameter] public RenderFragment? Buttons { get; set; }
 
     /// <summary>每列幾組欄位 (預設 2)</summary>
@@ -33,17 +34,17 @@
 
     [Parameter] public EventCallback OnSearch { get; set; }
 
-    /// <summary>未設定時不顯示清除按鈕</summary>
-    [Parameter] public EventCallback OnClear { get; set; }
+    /// <summary>未設定時不顯示重設按鈕</summary>
+    [Parameter] public EventCallback OnReset { get; set; }
 
     [Parameter] public string SearchText { get; set; } = "查詢";
 
-    [Parameter] public string ClearText { get; set; } = "清除";
+    [Parameter] public string ResetText { get; set; } = "重設";
 
     /// <summary>查詢中時停用按鈕，避免重複送出</summary>
     [Parameter] public bool Busy { get; set; }
 
     private Task SearchAsync() => OnSearch.InvokeAsync();
 
-    private Task ClearAsync() => OnClear.InvokeAsync();
+    private Task ResetAsync() => OnReset.InvokeAsync();
 }

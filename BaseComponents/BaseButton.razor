@@ -1,33 +1,58 @@
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @*
     共用按鈕
     - Kind：Default (一般)、Primary (主要)、Danger (危險，如刪除)
-    - AccessKey：設定後文字自動加上「(Q)」，並可用 Alt+Q 觸發
-    用法：<BaseButton Text="查詢" AccessKey="Q" Kind="BaseButtonKind.Primary" OnClick="SearchAsync" />
+    - 快速鍵：未指定 AccessKey 時依文字自動帶入 (查詢→Y、新增→A、重設→C、儲存→Y、取消→N…)，
+      顯示為「查詢(Y)」，可用 Alt+Y 觸發；AccessKey="" 表示不使用快速鍵
+    - 執行中自動停用，避免重複點擊
+    用法：<BaseButton Text="查詢" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Search" OnClick="SearchAsync" />
 *@
-<MudButton Variant="@MudVariant"
-           Color="@MudColor"
-           Size="Size.Small"
-           StartIcon="@Icon"
-           ButtonType="@ButtonType"
-           Disabled="@Disabled"
-           OnClick="@OnClick"
-           DropShadow="false"
-           Class="@($"base-button {Class}".Trim())"
-           UserAttributes="@ButtonAttributes">
-    @DisplayText
-</MudButton>
+<FluentButton Appearance="@FluentAppearance"
+              Type="@ButtonType"
+              Disabled="@(Disabled || busy)"
+              Loading="@busy"
+              IconStart="@FluentIcon"
+              BackgroundColor="@(Kind == BaseButtonKind.Danger ? "#c0392b" : null)"
+              Color="@(Kind == BaseButtonKind.Danger ? "#ffffff" : null)"
+              OnClick="@ClickAsync"
+              Class="@($"base-button {Class}".Trim())"
+              AdditionalAttributes="@ButtonAttributes">
+    @Text@if (!string.IsNullOrEmpty(Key))
+    {
+        <span class="base-accesskey">(<u>@Key</u>)</span>
+    }
+</FluentButton>
 
 @code {
+    /// <summary>
+    /// 依按鈕文字自動帶入的快速鍵 (與既有系統慣例一致)
+    /// 文字完全相同或以此開頭者適用，例如「報表列印」→ R
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> DefaultAccessKeys = new Dictionary<string, string>
+    {
+        { "新增", "A" },
+        { "查詢", "Y" },
+        { "重設", "C" },
+        { "返回", "X" },
+        { "儲存", "Y" },
+        { "列印", "R" },
+        { "報表列印", "R" },
+        { "清單列印", "R" },
+        { "資料列印", "S" },
+        { "匯出", "O" },
+        { "確定", "Y" },
+        { "取消", "N" },
+    };
+
     /// <summary>按鈕文字</summary>
     [Parameter, EditorRequired] public string Text { get; set; } = string.Empty;
 
-    /// <summary>快速鍵字母，例如 "Q" 顯示為「查詢(Q)」並以 Alt+Q 觸發</summary>
+    /// <summary>快速鍵字母；未設定時依文字自動帶入，設為空字串表示不使用</summary>
     [Parameter] public string? AccessKey { get; set; }
 
     [Parameter] public BaseButtonKind Kind { get; set; } = BaseButtonKind.Default;
 
-    /// <summary>圖示，例如 Icons.Material.Filled.Search</summary>
-    [Parameter] public string? Icon { get; set; }
+    [Parameter] public BaseIcon Icon { get; set; } = BaseIcon.None;
 
     [Parameter] public ButtonType ButtonType { get; set; } = ButtonType.Button;
 
@@ -37,20 +62,47 @@
 
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>其他 HTML 屬性 (例如 title、data-*) 會直接加到按鈕上</summary>
+    /// <summary>其他 HTML 屬性 (例如 title) 會直接加到按鈕上</summary>
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
-    private string DisplayText =>
-        string.IsNullOrEmpty(AccessKey) ? Text : $"{Text}({AccessKey.ToUpperInvariant()})";
+    private bool busy;
 
-    private Variant MudVariant => Kind == BaseButtonKind.Default ? Variant.Outlined : Variant.Filled;
-
-    private Color MudColor => Kind switch
+    /// <summary>實際使用的快速鍵</summary>
+    private string? Key
     {
-        BaseButtonKind.Primary => Color.Primary,
-        BaseButtonKind.Danger => Color.Error,
-        _ => Color.Default,
+        get
+        {
+            if (AccessKey is not null)
+            {
+                return AccessKey == string.Empty ? null : AccessKey.ToUpperInvariant();
+            }
+
+            if (DefaultAccessKeys.TryGetValue(Text, out var key))
+            {
+                return key;
+            }
+
+            return DefaultAccessKeys.FirstOrDefault(x => Text.StartsWith(x.Key)).Value;
+        }
+    }
+
+    private Appearance FluentAppearance => Kind == BaseButtonKind.Default ? Appearance.Neutral : Appearance.Accent;
+
+    private Icon? FluentIcon => Icon switch
+    {
+        BaseIcon.Search => new Icons.Regular.Size16.Search(),
+        BaseIcon.Add => new Icons.Regular.Size16.Add(),
+        BaseIcon.Edit => new Icons.Regular.Size16.Edit(),
+        BaseIcon.Delete => new Icons.Regular.Size16.Delete(),
+        BaseIcon.Save => new Icons.Regular.Size16.Save(),
+        BaseIcon.Reset => new Icons.Regular.Size16.ArrowUndo(),
+        BaseIcon.Cancel => new Icons.Regular.Size16.Dismiss(),
+        BaseIcon.Back => new Icons.Regular.Size16.ArrowLeft(),
+        BaseIcon.Print => new Icons.Regular.Size16.Print(),
+        BaseIcon.Export => new Icons.Regular.Size16.ArrowExport(),
+        BaseIcon.Confirm => new Icons.Regular.Size16.Checkmark(),
+        _ => null,
     };
 
     private Dictionary<string, object> ButtonAttributes
@@ -60,11 +112,34 @@
             var attributes = AdditionalAttributes is null
                 ? new Dictionary<string, object>()
                 : new Dictionary<string, object>(AdditionalAttributes);
-            if (!string.IsNullOrEmpty(AccessKey))
+            if (Key is not null)
             {
-                attributes["accesskey"] = AccessKey.ToLowerInvariant();
+                attributes["accesskey"] = Key.ToLowerInvariant();
+            }
+            if (Kind == BaseButtonKind.Primary)
+            {
+                // 鍵盤操作：在最後一個欄位按 Enter 時移到此按鈕 (見 base-components.js)
+                attributes["data-base-primary"] = "true";
             }
             return attributes;
+        }
+    }
+
+    private async Task ClickAsync(MouseEventArgs args)
+    {
+        if (!OnClick.HasDelegate || busy)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            await OnClick.InvokeAsync(args);
+        }
+        finally
+        {
+            busy = false;
         }
     }
 }

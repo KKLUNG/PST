@@ -1,32 +1,48 @@
 @*
-    文字輸入框 (統一外觀、密度)，支援 @bind-Value 與 EditForm 欄位驗證訊息
-    用法：<BaseTextBox @bind-Value="model.Email" InputType="InputType.Email" />
+    文字方框，支援 @bind-Value；在表單 (EditForm) 中會自動於下方顯示驗證訊息
+    - Type：Text、Password、Email、Tel、Url
+    - MaxLength：最大長度；輸入滿長度時自動跳到下一個欄位 (AutoNext=false 可關閉，適合條碼機輸入以外的情境)
+    - UpperCase：輸入的英文字母自動轉大寫 (代碼類欄位)
+    用法：<BaseTextBox @bind-Value="model.UserId" MaxLength="10" />
 *@
-<MudTextField T="string"
-              Value="@Value"
-              ValueChanged="@ValueChanged"
-              For="@ValueExpression"
-              InputType="@InputType"
-              Placeholder="@Placeholder"
-              ReadOnly="@ReadOnly"
-              Disabled="@Disabled"
-              MaxLength="@MaxLength"
-              Variant="Variant.Outlined"
-              Margin="Margin.Dense"
-              Immediate="true"
-              Class="@($"base-input {Class}".Trim())"
-              UserAttributes="@AdditionalAttributes" />
+<div class="base-input-wrap" style="@WidthStyle">
+    <FluentTextField Value="@Value"
+                     ValueChanged="@OnValueChanged"
+                     ValueExpression="@ValueExpression"
+                     TextFieldType="@FluentType"
+                     Placeholder="@Placeholder"
+                     ReadOnly="@ReadOnly"
+                     Disabled="@Disabled"
+                     Maxlength="@MaxLength"
+                     AutoComplete="@AutoComplete"
+                     Immediate="true"
+                     Class="@($"base-input {Class}".Trim())"
+                     AdditionalAttributes="@InputAttributes" />
+    @if (ShowValidation)
+    {
+        <FluentValidationMessage For="@ValueExpression" Class="base-validation-message" />
+    }
+</div>
 
 @code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
     [Parameter] public string? Value { get; set; }
 
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
 
-    /// <summary>由 @bind-Value 自動帶入，用於在欄位下方顯示驗證訊息</summary>
+    /// <summary>由 @bind-Value 自動帶入，用於顯示驗證訊息</summary>
     [Parameter] public Expression<Func<string?>>? ValueExpression { get; set; }
 
-    /// <summary>Text、Password、Email 等</summary>
-    [Parameter] public InputType InputType { get; set; } = InputType.Text;
+    [Parameter] public BaseTextType Type { get; set; } = BaseTextType.Text;
+
+    [Parameter] public int? MaxLength { get; set; }
+
+    /// <summary>輸入滿 MaxLength 時自動跳到下一個欄位 (預設開啟)</summary>
+    [Parameter] public bool AutoNext { get; set; } = true;
+
+    /// <summary>英文字母自動轉大寫</summary>
+    [Parameter] public bool UpperCase { get; set; }
 
     [Parameter] public string? Placeholder { get; set; }
 
@@ -34,12 +50,50 @@
 
     [Parameter] public bool Disabled { get; set; }
 
-    [Parameter] public int MaxLength { get; set; } = 524288;
+    /// <summary>瀏覽器自動完成，預設關閉 (off)；密碼欄位可設 current-password / new-password</summary>
+    [Parameter] public string AutoComplete { get; set; } = "off";
+
+    /// <summary>寬度，例如 "100%"、"120px"；預設 240px</summary>
+    [Parameter] public string? Width { get; set; }
 
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>其他 HTML 屬性 (例如 autocomplete) 會加到輸入框外層</summary>
-    /// <remarks>預設為空集合：MudBlazor 的 UserAttributes 不接受 null</remarks>
+    /// <summary>其他 HTML 屬性會加到輸入框上</summary>
     [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object> AdditionalAttributes { get; set; } = new();
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private bool ShowValidation => EditContext is not null && ValueExpression is not null;
+
+    private string? WidthStyle => Width is null ? null : $"--base-input-width: {Width}";
+
+    private TextFieldType FluentType => Type switch
+    {
+        BaseTextType.Password => TextFieldType.Password,
+        BaseTextType.Email => TextFieldType.Email,
+        BaseTextType.Tel => TextFieldType.Tel,
+        BaseTextType.Url => TextFieldType.Url,
+        _ => TextFieldType.Text,
+    };
+
+    private Dictionary<string, object> InputAttributes
+    {
+        get
+        {
+            var attributes = AdditionalAttributes is null
+                ? new Dictionary<string, object>()
+                : new Dictionary<string, object>(AdditionalAttributes);
+            if (AutoNext && MaxLength.HasValue)
+            {
+                attributes["data-auto-next"] = "true";
+            }
+            if (UpperCase)
+            {
+                attributes["data-uppercase"] = "true";
+            }
+            return attributes;
+        }
+    }
+
+    private Task OnValueChanged(string? value) =>
+        ValueChanged.InvokeAsync(UpperCase ? value?.ToUpperInvariant() : value);
 }

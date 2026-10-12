@@ -1,32 +1,30 @@
 @typeparam TValue
 @*
-    下拉選單，選項以 BaseOption 清單提供
-    - AllText：設定後會多一個「全部」選項 (值為 default，適合查詢條件使用可為 null 的型別，如 bool?)
+    下拉式選單，選項以 BaseOption 清單提供
+    - AllText：設定後第一個選項為「全部」(值為 default，適合查詢條件使用可為 null 的型別，如 bool?、string)
+    - 展開後可直接打字快速選取；收合時按 Enter 跳到下一個欄位
     用法：<BaseSelect @bind-Value="query.IsActive" Options="statusOptions" AllText="－ 全部 －" />
 *@
-<MudSelect T="TValue"
-           Value="@Value"
-           ValueChanged="@ValueChanged"
-           For="@ValueExpression"
-           ToStringFunc="@ToText"
-           Placeholder="@AllText"
-           Disabled="@Disabled"
-           ReadOnly="@ReadOnly"
-           Variant="Variant.Outlined"
-           Margin="Margin.Dense"
-           Dense="true"
-           Class="@($"base-input base-select {Class}".Trim())">
-    @if (AllText is not null)
+<div class="base-input-wrap" style="@WidthStyle">
+    <FluentSelect TOption="BaseOption<TValue>"
+                  Items="@items"
+                  OptionText="@(o => o.Text)"
+                  OptionValue="@(o => items.IndexOf(o).ToString())"
+                  SelectedOption="@selected"
+                  SelectedOptionChanged="@OnSelectedChanged"
+                  Placeholder="@Placeholder"
+                  Disabled="@(Disabled || ReadOnly)"
+                  Height="300px"
+                  Class="@($"base-input base-select {Class}".Trim())" />
+    @if (ShowValidation)
     {
-        <MudSelectItem T="TValue" Value="@(default(TValue))">@AllText</MudSelectItem>
+        <FluentValidationMessage For="@ValueExpression" Class="base-validation-message" />
     }
-    @foreach (var option in Options)
-    {
-        <MudSelectItem T="TValue" Value="@option.Value">@option.Text</MudSelectItem>
-    }
-</MudSelect>
+</div>
 
 @code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
     [Parameter] public TValue? Value { get; set; }
 
     [Parameter] public EventCallback<TValue?> ValueChanged { get; set; }
@@ -38,15 +36,41 @@
     /// <summary>「全部」選項文字，未設定則不顯示該選項</summary>
     [Parameter] public string? AllText { get; set; }
 
+    /// <summary>未選取時顯示的提示文字</summary>
+    [Parameter] public string? Placeholder { get; set; } = "－ 請選擇 －";
+
     [Parameter] public bool Disabled { get; set; }
 
     [Parameter] public bool ReadOnly { get; set; }
 
+    /// <summary>寬度，例如 "100%"、"120px"；預設 240px</summary>
+    [Parameter] public string? Width { get; set; }
+
     [Parameter] public string? Class { get; set; }
 
-    private string? ToText(TValue? value)
+    private List<BaseOption<TValue>> items = [];
+    private BaseOption<TValue>? selected;
+
+    private bool ShowValidation => EditContext is not null && ValueExpression is not null;
+
+    private string? WidthStyle => Width is null ? null : $"--base-input-width: {Width}";
+
+    protected override void OnParametersSet()
     {
-        var option = Options.FirstOrDefault(o => EqualityComparer<TValue>.Default.Equals(o.Value, value));
-        return option?.Text ?? (value is null ? AllText : value.ToString());
+        items = AllText is null
+            ? Options.ToList()
+            : [new BaseOption<TValue>(default!, AllText), .. Options];
+
+        selected = items.FirstOrDefault(o => EqualityComparer<TValue>.Default.Equals(o.Value, Value));
+    }
+
+    private async Task OnSelectedChanged(BaseOption<TValue>? option)
+    {
+        selected = option;
+        await ValueChanged.InvokeAsync(option is null ? default : option.Value);
+        if (ShowValidation)
+        {
+            EditContext!.NotifyFieldChanged(FieldIdentifier.Create(ValueExpression!));
+        }
     }
 }

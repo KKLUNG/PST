@@ -1,0 +1,61 @@
+@typeparam TValue where TValue : new()
+@*
+    數字方框 (int、decimal、double 及其可為 null 型別)
+    - Min / Max：允許範圍
+    - ShowStep：是否顯示上下調整按鈕 (預設不顯示)
+    用法：<BaseNumeric @bind-Value="model.Qty" Min="0" Max="9999" />
+*@
+<div class="base-input-wrap" style="@WidthStyle">
+    <FluentNumberField TValue="TValue"
+                       Value="@Value"
+                       ValueChanged="@ValueChanged"
+                       ValueExpression="@ValueExpression"
+                       Min="@MinText"
+                       Max="@MaxText"
+                       HideStep="@(!ShowStep)"
+                       Placeholder="@Placeholder"
+                       ReadOnly="@ReadOnly"
+                       Disabled="@Disabled"
+                       Immediate="true"
+                       ParsingErrorMessage="請輸入數字"
+                       Class="@($"base-input base-numeric {Class}".Trim())" />
+    @if (ShowValidation)
+    {
+        <FluentValidationMessage For="@ValueExpression" Class="base-validation-message" />
+    }
+</div>
+
+@code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    [Parameter] public TValue Value { get; set; } = default!;
+
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<TValue>>? ValueExpression { get; set; }
+
+    [Parameter] public decimal? Min { get; set; }
+
+    [Parameter] public decimal? Max { get; set; }
+
+    [Parameter] public bool ShowStep { get; set; }
+
+    [Parameter] public string? Placeholder { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>寬度，預設 140px</summary>
+    [Parameter] public string Width { get; set; } = "140px";
+
+    [Parameter] public string? Class { get; set; }
+
+    private bool ShowValidation => EditContext is not null && ValueExpression is not null;
+
+    private string WidthStyle => $"--base-input-width: {Width}";
+
+    private string? MinText => Min?.ToString(CultureInfo.InvariantCulture);
+
+    private string? MaxText => Max?.ToString(CultureInfo.InvariantCulture);
+}

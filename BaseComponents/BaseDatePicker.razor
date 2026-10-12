@@ -1,0 +1,79 @@
+@*
+    日期選擇 (可直接輸入或從日曆選取)
+    - Roc：以民國年顯示與輸入 (例如 115/10/12)
+    用法：<BaseDatePicker @bind-Value="model.StartDate" Roc="true" />
+*@
+<div class="base-input-wrap" style="@WidthStyle">
+    <FluentDatePicker Value="@Value"
+                      ValueChanged="@ValueChanged"
+                      ValueExpression="@ValueExpression"
+                      Culture="@(Roc ? RocCulture : AdCulture)"
+                      Placeholder="@(Placeholder ?? (Roc ? "例：115/10/12" : "例：2026/10/12"))"
+                      ReadOnly="@ReadOnly"
+                      Disabled="@Disabled"
+                      DisabledDateFunc="@DisabledDate"
+                      ParsingErrorMessage="日期格式不正確"
+                      Class="@($"base-input base-datepicker {Class}".Trim())" />
+    @if (ShowValidation)
+    {
+        <FluentValidationMessage For="@ValueExpression" Class="base-validation-message" />
+    }
+</div>
+
+@code {
+    /// <summary>西元年 (yyyy/MM/dd)</summary>
+    private static readonly CultureInfo AdCulture = CreateCulture(roc: false);
+
+    /// <summary>民國年 (yyy/MM/dd)：zh-TW 文化搭配 TaiwanCalendar</summary>
+    private static readonly CultureInfo RocCulture = CreateCulture(roc: true);
+
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    [Parameter] public DateTime? Value { get; set; }
+
+    [Parameter] public EventCallback<DateTime?> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<DateTime?>>? ValueExpression { get; set; }
+
+    /// <summary>以民國年顯示與輸入</summary>
+    [Parameter] public bool Roc { get; set; }
+
+    /// <summary>可選取的最早日期</summary>
+    [Parameter] public DateTime? Min { get; set; }
+
+    /// <summary>可選取的最晚日期</summary>
+    [Parameter] public DateTime? Max { get; set; }
+
+    [Parameter] public string? Placeholder { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>寬度，預設 160px</summary>
+    [Parameter] public string Width { get; set; } = "160px";
+
+    [Parameter] public string? Class { get; set; }
+
+    private bool ShowValidation => EditContext is not null && ValueExpression is not null;
+
+    private string WidthStyle => $"--base-input-width: {Width}";
+
+    private bool DisabledDate(DateTime date) =>
+        (Min.HasValue && date.Date < Min.Value.Date) || (Max.HasValue && date.Date > Max.Value.Date);
+
+    private static CultureInfo CreateCulture(bool roc)
+    {
+        var culture = (CultureInfo)CultureInfo.GetCultureInfo("zh-TW").Clone();
+        if (roc)
+        {
+            culture.DateTimeFormat.Calendar = new TaiwanCalendar();
+            culture.DateTimeFormat.ShortDatePattern = "yyy/MM/dd";
+        }
+        else
+        {
+            culture.DateTimeFormat.ShortDatePattern = "yyyy/MM/dd";
+        }
+        return culture;
+    }
+}

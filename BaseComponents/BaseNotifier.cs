@@ -1,4 +1,4 @@
-using MudBlazor;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace BaseComponents
 {
@@ -7,21 +7,20 @@ namespace BaseComponents
     /// </summary>
     public class BaseNotifier
     {
-        private readonly ISnackbar _snackbar;
+        private readonly IToastService _toastService;
 
-        public BaseNotifier(ISnackbar snackbar)
+        public BaseNotifier(IToastService toastService)
         {
-            _snackbar = snackbar;
+            _toastService = toastService;
         }
 
-        public void Success(string message) => _snackbar.Add(message, Severity.Success);
+        public void Success(string message) => _toastService.ShowSuccess(message);
 
-        public void Info(string message) => _snackbar.Add(message, Severity.Info);
+        public void Info(string message) => _toastService.ShowInfo(message);
 
-        public void Warning(string message) => _snackbar.Add(message, Severity.Warning);
+        public void Warning(string message) => _toastService.ShowWarning(message, 5000);
 
         /// <summary>錯誤訊息顯示較久 (8 秒)，避免使用者來不及看到</summary>
-        public void Error(string message) =>
-            _snackbar.Add(message, Severity.Error, options => options.VisibleStateDuration = 8000);
+        public void Error(string message) => _toastService.ShowError(message, 8000);
     }
 }

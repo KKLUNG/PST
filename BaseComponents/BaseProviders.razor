@@ -1,15 +1,16 @@
 @*
-    底層元件所需的 MudBlazor 提供者 (主題、彈出層、對話框、訊息通知)
+    底層元件所需的 Fluent UI 提供者 (主題色、對話框、訊息通知、提示)
     放在系統的 MainLayout 中一次即可
 *@
-<MudThemeProvider Theme="@(Theme ?? BaseTheme.Default)" />
-<MudPopoverProvider />
-<MudDialogProvider CloseOnEscapeKey="true" BackdropClick="false" />
-<MudSnackbarProvider />
+<FluentDesignTheme Mode="DesignThemeModes.Light" CustomColor="@AccentColor" />
+<FluentToastProvider Position="ToastPosition.TopCenter" Timeout="3000" MaxToastCount="5" />
+<FluentDialogProvider />
+<FluentTooltipProvider />
+<FluentMessageBarProvider />
 
 @code {
     /// <summary>
-    /// 自訂主題 (未指定時使用 BaseTheme.Default)
+    /// 主題色 (按鈕、選取狀態等)，預設為綠色系
     /// </summary>
-    [Parameter] public MudTheme? Theme { get; set; }
+    [Parameter] public string AccentColor { get; set; } = "#4f8f26";
 }

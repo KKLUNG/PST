@@ -1,0 +1,51 @@
+@*
+    多行文字方框 (備註、說明等)
+    - 按 Enter 為換行，不會跳到下一個欄位
+    用法：<BaseTextArea @bind-Value="model.Remark" Rows="3" MaxLength="500" />
+*@
+<div class="base-input-wrap base-textarea-wrap" style="@WidthStyle">
+    <FluentTextArea Value="@Value"
+                    ValueChanged="@ValueChanged"
+                    ValueExpression="@ValueExpression"
+                    Rows="@Rows"
+                    Maxlength="@MaxLength"
+                    Placeholder="@Placeholder"
+                    ReadOnly="@ReadOnly"
+                    Disabled="@Disabled"
+                    Resize="TextAreaResize.Vertical"
+                    Immediate="true"
+                    Class="@($"base-input base-textarea {Class}".Trim())" />
+    @if (ShowValidation)
+    {
+        <FluentValidationMessage For="@ValueExpression" Class="base-validation-message" />
+    }
+</div>
+
+@code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    [Parameter] public int Rows { get; set; } = 3;
+
+    [Parameter] public int? MaxLength { get; set; }
+
+    [Parameter] public string? Placeholder { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>寬度，預設 100%</summary>
+    [Parameter] public string Width { get; set; } = "100%";
+
+    [Parameter] public string? Class { get; set; }
+
+    private bool ShowValidation => EditContext is not null && ValueExpression is not null;
+
+    private string WidthStyle => $"--base-input-width: {Width}";
+}

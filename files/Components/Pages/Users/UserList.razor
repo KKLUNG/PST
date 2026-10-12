@@ -8,7 +8,7 @@
 <SectionContent SectionName="breadcrumb">系統管理 &gt; 使用者維護</SectionContent>
 
 <!-- ========== 查詢條件 ========== -->
-<BaseQueryPanel OnSearch="SearchAsync" OnClear="ClearAsync" Busy="loading">
+<BaseQueryPanel OnSearch="SearchAsync" OnReset="ResetAsync" Busy="loading">
     <BaseField Label="帳號">
         <BaseTextBox @bind-Value="query.Username" />
     </BaseField>
@@ -24,33 +24,29 @@
 </BaseQueryPanel>
 
 <!-- ========== 查詢結果 ========== -->
-<BaseDataGrid Items="users" Loading="loading">
+<BaseDataGrid Items="users" Loading="loading" ColumnWidths="1fr 1.6fr 1fr 70px 115px 150px 210px">
     <ToolBarContent>
-        <BaseButton Text="新增" AccessKey="A" Kind="BaseButtonKind.Primary" Icon="@Icons.Material.Filled.Add" OnClick="CreateAsync" />
+        <BaseButton Text="新增" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Add" OnClick="CreateAsync" />
     </ToolBarContent>
     <Columns>
-        <PropertyColumn Property="x => x.Username" Title="帳號" />
-        <PropertyColumn Property="x => x.Email" Title="電子郵件" />
-        <PropertyColumn Property="x => x.FullName" Title="姓名" />
-        <TemplateColumn Title="狀態" CellClass="text-center" SortBy="x => x.IsActive">
-            <CellTemplate>
-                @if (context.Item.IsActive)
-                {
-                    <span class="status-active">啟用</span>
-                }
-                else
-                {
-                    <span class="status-inactive">停用</span>
-                }
-            </CellTemplate>
+        <PropertyColumn Property="x => x.Username" Title="帳號" Sortable="true" />
+        <PropertyColumn Property="x => x.Email" Title="電子郵件" Sortable="true" />
+        <PropertyColumn Property="x => x.FullName" Title="姓名" Sortable="true" />
+        <TemplateColumn Title="狀態" Align="Align.Center" Context="user">
+            @if (user.IsActive)
+            {
+                <span class="status-active">啟用</span>
+            }
+            else
+            {
+                <span class="status-inactive">停用</span>
+            }
         </TemplateColumn>
-        <PropertyColumn Property="x => x.CreatedDate" Title="建立日期" Format="yyyy/MM/dd" CellClass="text-center" />
-        <PropertyColumn Property="x => x.LastLoginDate" Title="最後登入" Format="yyyy/MM/dd HH:mm" CellClass="text-center" />
-        <TemplateColumn Title="操作" Sortable="false" CellClass="text-center">
-            <CellTemplate>
-                <BaseButton Text="編輯" Icon="@Icons.Material.Filled.Edit" OnClick="() => EditAsync(context.Item)" />
-                <BaseButton Text="刪除" Kind="BaseButtonKind.Danger" Icon="@Icons.Material.Filled.Delete" OnClick="() => DeleteAsync(context.Item)" />
-            </CellTemplate>
+        <PropertyColumn Property="x => x.CreatedDate" Title="建立日期" Format="yyyy/MM/dd" Align="Align.Center" Sortable="true" />
+        <PropertyColumn Property="x => x.LastLoginDate" Title="最後登入" Format="yyyy/MM/dd HH:mm" Align="Align.Center" />
+        <TemplateColumn Title="操作" Align="Align.Center" Context="user">
+            <BaseButton Text="編輯" AccessKey="" Icon="BaseIcon.Edit" OnClick="() => EditAsync(user)" />
+            <BaseButton Text="刪除" AccessKey="" Kind="BaseButtonKind.Danger" Icon="BaseIcon.Delete" OnClick="() => DeleteAsync(user)" />
         </TemplateColumn>
     </Columns>
 </BaseDataGrid>
@@ -87,7 +83,7 @@
         }
     }
 
-    private Task ClearAsync()
+    private Task ResetAsync()
     {
         query = new UserQuery();
         return SearchAsync();
@@ -95,7 +91,7 @@
 
     private async Task CreateAsync()
     {
-        if (await Dialog.ShowFormAsync<UserEditDialog>("使用者新增"))
+        if (await Dialog.ShowFormAsync<UserEditDialog, UserEditArgs>("使用者新增", new UserEditArgs(null)))
         {
             await SearchAsync();
         }
@@ -103,8 +99,7 @@
 
     private async Task EditAsync(UserDto user)
     {
-        var parameters = new DialogParameters { { nameof(UserEditDialog.UserId), user.UserId } };
-        if (await Dialog.ShowFormAsync<UserEditDialog>("使用者編輯", parameters))
+        if (await Dialog.ShowFormAsync<UserEditDialog, UserEditArgs>("使用者編輯", new UserEditArgs(user.UserId)))
         {
             await SearchAsync();
         }
@@ -120,7 +115,7 @@
             return;
         }
 
-        if (!await Dialog.ConfirmAsync($"確認要刪除使用者「{user.Username}」嗎？此操作無法復原。", "刪除確認", "刪除", danger: true))
+        if (!await Dialog.ConfirmAsync($"確認要刪除使用者「{user.Username}」嗎？此操作無法復原。", "刪除確認", "刪除"))
         {
             return;
         }

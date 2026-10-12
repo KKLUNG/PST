@@ -1,15 +1,15 @@
-@typeparam T
-@attribute [CascadingTypeParameter(nameof(T))]
+@typeparam TGridItem
+@attribute [CascadingTypeParameter(nameof(TGridItem))]
 @*
     資料清單：統一的筆數顯示、工具列、分頁、無資料訊息與表格樣式
-    欄位直接使用 MudBlazor 的 PropertyColumn / TemplateColumn
+    欄位直接使用 Fluent UI 的 PropertyColumn / TemplateColumn
     用法：
     <BaseDataGrid Items="users" Loading="loading">
-        <ToolBarContent><BaseButton Text="新增" AccessKey="A" OnClick="CreateAsync" /></ToolBarContent>
+        <ToolBarContent><BaseButton Text="新增" Icon="BaseIcon.Add" OnClick="CreateAsync" /></ToolBarContent>
         <Columns>
             <PropertyColumn Property="x => x.Username" Title="帳號" />
-            <TemplateColumn Title="操作">
-                <CellTemplate>...context.Item...</CellTemplate>
+            <TemplateColumn Title="操作" Context="item">
+                <BaseButton Text="編輯" OnClick="() => EditAsync(item)" />
             </TemplateColumn>
         </Columns>
     </BaseDataGrid>
@@ -20,40 +20,35 @@
         <div class="base-grid-toolbar-buttons">@ToolBarContent</div>
     </div>
 
-    <MudDataGrid T="T"
-                 Items="@Items"
-                 Columns="@Columns"
-                 Loading="@Loading"
-                 RowsPerPage="@(PageSize > 0 ? PageSize : int.MaxValue)"
-                 Dense="true"
-                 Striped="true"
-                 Hover="true"
-                 Bordered="true"
-                 Elevation="0"
-                 Filterable="false"
-                 Breakpoint="Breakpoint.None"
-                 HorizontalScrollbar="true"
-                 Class="base-grid">
-        <NoRecordsContent>
-            <span class="base-grid-empty">@EmptyText</span>
-        </NoRecordsContent>
-        <LoadingContent>
-            <span class="base-grid-empty">資料載入中...</span>
-        </LoadingContent>
-        <PagerContent>
-            @if (PageSize > 0)
-            {
-                <MudDataGridPager T="T"
-                                  PageSizeOptions="@PageSizeOptions"
-                                  RowsPerPageString="每頁筆數："
-                                  InfoFormat="第 {first_item}-{last_item} 筆，共 {all_items} 筆" />
-            }
-        </PagerContent>
-    </MudDataGrid>
+    <div class="base-grid-scroll">
+        <FluentDataGrid TGridItem="TGridItem"
+                        Items="@queryable"
+                        Pagination="@(PageSize > 0 ? pagination : null)"
+                        Loading="@Loading"
+                        GridTemplateColumns="@ColumnWidths"
+                        GenerateHeader="GenerateHeaderOption.Default"
+                        Class="base-grid">
+            <ChildContent>@Columns</ChildContent>
+            <EmptyContent>
+                <span class="base-grid-empty">@EmptyText</span>
+            </EmptyContent>
+            <LoadingContent>
+                <span class="base-grid-empty">資料載入中...</span>
+            </LoadingContent>
+        </FluentDataGrid>
+    </div>
+
+    @if (PageSize > 0 && (Items?.Count() ?? 0) > PageSize)
+    {
+        <FluentPaginator State="@pagination" Class="base-grid-pager">
+            <SummaryTemplate>共 <strong>@(pagination.TotalItemCount ?? 0)</strong> 筆</SummaryTemplate>
+            <PaginationTextTemplate>第 <strong>@(pagination.CurrentPageIndex + 1)</strong> / @(pagination.LastPageIndex + 1) 頁</PaginationTextTemplate>
+        </FluentPaginator>
+    }
 </div>
 
 @code {
-    [Parameter] public IEnumerable<T>? Items { get; set; }
+    [Parameter] public IEnumerable<TGridItem>? Items { get; set; }
 
     /// <summary>欄位定義 (PropertyColumn、TemplateColumn)</summary>
     [Parameter] public RenderFragment? Columns { get; set; }
@@ -63,10 +58,28 @@
 
     [Parameter] public bool Loading { get; set; }
 
+    /// <summary>各欄寬度 (CSS grid 寫法)，例如 "1fr 2fr 120px"；未設定時平均分配</summary>
+    [Parameter] public string? ColumnWidths { get; set; }
+
     /// <summary>每頁筆數，0 表示不分頁</summary>
     [Parameter] public int PageSize { get; set; } = 10;
 
-    [Parameter] public int[] PageSizeOptions { get; set; } = [10, 20, 50, 100];
-
     [Parameter] public string EmptyText { get; set; } = "查無符合條件的資料";
+
+    private PaginationState pagination = new();
+    private IQueryable<TGridItem>? queryable;
+    private IEnumerable<TGridItem>? lastItems;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        pagination.ItemsPerPage = PageSize > 0 ? PageSize : int.MaxValue;
+
+        // 查詢結果更新時回到第一頁
+        if (!ReferenceEquals(Items, lastItems))
+        {
+            lastItems = Items;
+            queryable = Items?.AsQueryable();
+            await pagination.SetCurrentPageIndexAsync(0);
+        }
+    }
 }

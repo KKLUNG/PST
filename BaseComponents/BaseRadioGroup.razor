@@ -1,0 +1,47 @@
+@typeparam TValue
+@*
+    單選按鈕群組，選項以 BaseOption 清單提供
+    - Vertical：垂直排列 (預設水平)
+    用法：<BaseRadioGroup @bind-Value="model.Gender" Options="genderOptions" />
+*@
+<div class="base-input-wrap base-radio-wrap">
+    <FluentRadioGroup TValue="TValue"
+                      Value="@Value"
+                      ValueChanged="@ValueChanged"
+                      ValueExpression="@ValueExpression"
+                      Orientation="@(Vertical ? Orientation.Vertical : Orientation.Horizontal)"
+                      ReadOnly="@ReadOnly"
+                      Disabled="@Disabled"
+                      Class="@($"base-radio-group {Class}".Trim())">
+        @foreach (var option in Options)
+        {
+            <FluentRadio TValue="TValue" Value="@option.Value">@option.Text</FluentRadio>
+        }
+    </FluentRadioGroup>
+    @if (ShowValidation)
+    {
+        <FluentValidationMessage For="@ValueExpression" Class="base-validation-message" />
+    }
+</div>
+
+@code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    [Parameter] public TValue Value { get; set; } = default!;
+
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<TValue>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired] public IEnumerable<BaseOption<TValue>> Options { get; set; } = [];
+
+    [Parameter] public bool Vertical { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    private bool ShowValidation => EditContext is not null && ValueExpression is not null;
+}

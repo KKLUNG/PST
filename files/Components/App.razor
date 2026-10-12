@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
+    @* 元件隔離樣式 (含 Fluent UI 元件本身的樣式)，必須引用 *@
+    <link rel="stylesheet" href="BlazorUserManagement.styles.css" />
     <link rel="stylesheet" href="_content/BaseComponents/base-components.css" />
     <link rel="stylesheet" href="app.css" />
     <HeadOutlet @rendermode="RenderModeForPage" />
@@ -12,7 +13,7 @@
 <body>
     <Routes @rendermode="RenderModeForPage" />
     <script src="_framework/blazor.web.js"></script>
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script src="_content/BaseComponents/base-components.js"></script>
 </body>
 </html>
 
