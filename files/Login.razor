@@ -8,12 +8,12 @@
 <PageTitle>登入 - 使用者管理系統</PageTitle>
 
 <div class="login-container">
-    <MudContainer MaxWidth="MaxWidth.Xs" Class="py-8">
+    <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="py-8">
         <MudPaper Class="pa-8" Elevation="3">
             <div class="text-center mb-6">
                 <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Large" Color="Color.Primary"></MudIcon>
-                <MudText Typo="Typo.H4" Class="mt-3">使用者管理系統</MudText>
-                <MudText Typo="Typo.Body2" Color="Color.TextSecondary">請輸入帳號密碼登入</MudText>
+                <MudText Typo="Typo.h4" Class="mt-3">使用者管理系統</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">請輸入帳號密碼登入</MudText>
             </div>
 
             <EditForm Model="@loginRequest" OnSubmit="@HandleLogin">
@@ -65,15 +65,15 @@
 
                 <MudDivider Class="my-4"></MudDivider>
 
-                <MudText Typo="Typo.Body2" Align="Align.Center" Color="Color.TextSecondary" Class="mb-3">
+                <MudText Typo="Typo.body2" Align="Align.Center" Class="mud-text-secondary mb-3">
                     測試帳號
                 </MudText>
                 <MudList>
                     <MudListItem>
-                        <MudText Typo="Typo.Caption">帳號: <strong>admin</strong> / 密碼: <strong>admin123</strong></MudText>
+                        <MudText Typo="Typo.caption">帳號: <strong>admin</strong> / 密碼: <strong>admin123</strong></MudText>
                     </MudListItem>
                     <MudListItem>
-                        <MudText Typo="Typo.Caption">帳號: <strong>user1</strong> / 密碼: <strong>admin123</strong></MudText>
+                        <MudText Typo="Typo.caption">帳號: <strong>user1</strong> / 密碼: <strong>admin123</strong></MudText>
                     </MudListItem>
                 </MudList>
             </EditForm>

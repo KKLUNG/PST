@@ -10,11 +10,11 @@
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
     <div class="mb-6">
-        <MudText Typo="Typo.H4" GutterBottom="true">
+        <MudText Typo="Typo.h4" GutterBottom="true">
             <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2"></MudIcon>
             使用者管理
         </MudText>
-        <MudText Typo="Typo.Body2" Color="Color.TextSecondary">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
             管理系統中的所有使用者帳號，可進行新增、編輯及刪除操作
         </MudText>
     </div>
@@ -65,7 +65,7 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="使用者名稱">
-                        <MudText Typo="Typo.Body2">@context.Username</MudText>
+                        <MudText Typo="Typo.body2">@context.Username</MudText>
                     </MudTd>
                     <MudTd DataLabel="電子郵件">
                         <MudLink Href="@($"mailto:{context.Email}")" Target="_blank">
@@ -73,7 +73,7 @@
                         </MudLink>
                     </MudTd>
                     <MudTd DataLabel="姓名">
-                        <MudText Typo="Typo.Body2">@(context.FullName ?? "-")</MudText>
+                        <MudText Typo="Typo.body2">@(context.FullName ?? "-")</MudText>
                     </MudTd>
                     <MudTd DataLabel="狀態">
                         @if (context.IsActive)
@@ -92,7 +92,7 @@
                         }
                     </MudTd>
                     <MudTd DataLabel="建立日期">
-                        <MudText Typo="Typo.Body2">@context.CreatedDate.ToString("yyyy-MM-dd")</MudText>
+                        <MudText Typo="Typo.body2">@context.CreatedDate.ToString("yyyy-MM-dd")</MudText>
                     </MudTd>
                     <MudTd DataLabel="操作" Align="Align.Right">
                         <MudButtonGroup Variant="Variant.Text" Size="Size.Small">
