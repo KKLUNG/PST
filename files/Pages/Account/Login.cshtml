@@ -1,0 +1,40 @@
+@page
+@model BlazorUserManagement.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "系統登入";
+    Layout = "_LoginLayout";
+}
+
+<div class="login-box">
+    <div class="login-box-title">系統登入</div>
+    <div class="login-box-body">
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="msg msg-error">@Model.ErrorMessage</div>
+        }
+
+        <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+            <table class="query-table">
+                <tr>
+                    <th><label asp-for="Input.Username">帳號</label></th>
+                    <td>
+                        <input asp-for="Input.Username" type="text" autocomplete="username" autofocus />
+                        <span asp-validation-for="Input.Username"></span>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label asp-for="Input.Password">密碼</label></th>
+                    <td>
+                        <input asp-for="Input.Password" type="password" autocomplete="current-password" />
+                        <span asp-validation-for="Input.Password"></span>
+                    </td>
+                </tr>
+            </table>
+            <div class="button-bar">
+                <button type="submit" class="btn" accesskey="l">登入(L)</button>
+            </div>
+        </form>
+
+        <div class="login-hint">測試帳號：admin / admin123</div>
+    </div>
+</div>
