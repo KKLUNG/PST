@@ -1,9 +1,12 @@
 # BaseComponents 共用底層元件庫
 
-以 [MudBlazor](https://mudblazor.com/)（免費、MIT 授權）為基礎包裝的 Blazor 元件庫。
-目的是讓各系統的查詢畫面、清單、表單、對話框**寫法一致、外觀一致**，新畫面只要組合元件即可。
+以 [Microsoft Fluent UI Blazor](https://www.fluentui-blazor.net/)（v4.14.4，免費、MIT 授權）為基礎包裝的 Blazor 元件庫。
+目的是讓各系統的輸入欄位、查詢畫面、清單、表單、對話框**寫法一致、外觀一致、操作一致**，新畫面只要組合元件即可。
 
-> 命名慣例：底層元件一律以 `Base` 開頭（同 Vue 官方風格指南對基礎元件的建議）。
+- 命名慣例：底層元件一律以 `Base` 開頭（同 Vue 官方風格指南對基礎元件的建議）。
+- 頁面只使用 `Base` 元件與本庫的型別（`BaseOption`、`BaseIcon`、`BaseTextType`…），不直接使用 Fluent UI。
+  日後升級或更換 UI 元件庫時，只需修改本專案。（例外：清單欄位直接使用 Fluent UI 的 `PropertyColumn`／`TemplateColumn`）
+- 操作慣例沿用既有系統（POST_CT202206-PH2 的 Component 專案）：按鈕快速鍵依文字自動帶入、Enter 跳下一欄、輸入滿長度自動跳欄。
 
 ## 安裝到新系統
 
@@ -19,19 +22,20 @@
    builder.Services.AddBaseComponents();
    ```
 
-3. `App.razor` 的 `<head>` 引用樣式，`<body>` 引用 MudBlazor 腳本：
+3. `App.razor` 引用樣式與鍵盤操作腳本（`{專案名稱}.styles.css` 內含 Fluent UI 元件樣式，**必須引用**）：
 
    ```html
-   <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
+   <link rel="stylesheet" href="{專案名稱}.styles.css" />
    <link rel="stylesheet" href="_content/BaseComponents/base-components.css" />
    ...
-   <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+   <script src="_framework/blazor.web.js"></script>
+   <script src="_content/BaseComponents/base-components.js"></script>
    ```
 
 4. `_Imports.razor` 加入：
 
    ```razor
-   @using MudBlazor
+   @using Microsoft.FluentUI.AspNetCore.Components
    @using BaseComponents
    ```
 
@@ -45,70 +49,136 @@
 
 ## 元件一覽
 
+完整示範見系統的「開發工具 > 底層元件展示」頁（`/dev/components`）。
+
+### 基礎輸入元件
+
+| 元件 | 用途 | 主要參數 |
+|------|------|----------|
+| `BaseTextBox` | 文字方框 | `Type`（Text／Password／Email…）、`MaxLength`、`AutoNext`、`UpperCase`、`Width` |
+| `BaseTextArea` | 多行文字 | `Rows`、`MaxLength` |
+| `BaseSelect<TValue>` | 下拉式選單 | `Options`、`AllText`（加「全部」選項）、`Placeholder` |
+| `BaseNumeric<TValue>` | 數字方框 | `Min`、`Max`、`ShowStep` |
+| `BaseDatePicker` | 日期（可輸入或點日曆） | `Roc`（民國年）、`Min`、`Max` |
+| `BaseCheckBox` | 核取方塊 | `Label` |
+| `BaseRadioGroup<TValue>` | 單選按鈕群組 | `Options`、`Vertical` |
+| `BaseButton` | 按鈕 | `Kind`（Default／Primary／Danger）、`Icon`、`AccessKey` |
+
+共通：
+- 皆支援 `@bind-Value`，以及 `ReadOnly`、`Disabled`。
+- 放在 `EditForm`（或 `BaseFormDialog`）內時，DataAnnotations 驗證訊息會**自動顯示在欄位下方**。
+
+### 版面與複合元件
+
 | 元件 | 用途 |
 |------|------|
-| `BaseProviders` | 主題、對話框、訊息通知提供者（Layout 放一次） |
-| `BaseButton` | 按鈕：一般／主要／危險，`AccessKey` 自動顯示「(Q)」並支援 Alt 快速鍵 |
-| `BaseQueryPanel` | 查詢條件區：表格式欄位 + 查詢(Q)／清除(C)，按 Enter 即查詢 |
-| `BaseField` | 欄位（標籤 + 內容），放在 `BaseQueryPanel`、`BaseFormDialog` 內 |
-| `BaseTextBox` | 文字輸入框（Text／Password／Email） |
-| `BaseSelect<TValue>` | 下拉選單，可加「全部」選項 |
-| `BaseCheckBox` | 核取方塊 |
-| `BaseDataGrid<T>` | 資料清單：筆數、工具列、分頁、無資料訊息 |
-| `BaseFormDialog` | 表單對話框：欄位版面、資料驗證、存檔(S)／取消 |
+| `BaseProviders` | 主題色、對話框、訊息通知提供者（Layout 放一次） |
+| `BaseField` | 欄位（標籤 + 內容），放在查詢區、表單內自動排成表格式版面；`Required` 顯示 *，`ColSpan` 橫跨多組 |
+| `BaseQueryPanel` | 查詢條件區 + 查詢(Y)／重設(C) |
+| `BaseDataGrid<TGridItem>` | 資料清單：筆數、工具列、分頁、無資料訊息；`ColumnWidths` 設定欄寬 |
+| `BaseFormDialog` | 表單對話框：欄位版面、資料驗證、儲存(Y)／取消(N) |
 
 | 服務 | 用途 |
 |------|------|
-| `BaseDialogService` | `ConfirmAsync` 確認視窗、`ShowFormAsync<T>` 開啟表單對話框 |
+| `BaseDialogService` | `ConfirmAsync` 確認視窗、`ShowFormAsync<TDialog, TData>` 開啟表單對話框 |
 | `BaseNotifier` | `Success`／`Info`／`Warning`／`Error` 訊息通知 |
 
-## 範例：一個完整的查詢維護畫面
+## 操作慣例
+
+### 按鈕快速鍵
+
+未指定 `AccessKey` 時依按鈕文字自動帶入，顯示為「查詢(Y)」，按 **Alt + 字母** 觸發：
+
+| 文字 | 快速鍵 | 文字 | 快速鍵 |
+|------|--------|------|--------|
+| 查詢 | Y | 儲存 | Y |
+| 新增 | A | 確定 | Y |
+| 重設 | C | 取消 | N |
+| 返回 | X | 匯出 | O |
+| 列印、報表列印、清單列印 | R | 資料列印 | S |
+
+- 自訂：`AccessKey="P"`；不使用：`AccessKey=""`（例如清單每一列的編輯、刪除按鈕）。
+- 按鈕執行中會自動停用並顯示處理中，避免重複點擊。
+
+### 鍵盤輸入
+
+在 `BaseQueryPanel`、`BaseFormDialog`（或自行加上 `class="base-keyboard-nav"` 的表單）內：
+
+- 欄位中按 **Enter** 跳到下一個欄位；最後一個欄位按 Enter 移到主要按鈕（查詢、儲存），再按 Enter 即執行。
+- `BaseTextBox` 設定 `MaxLength` 時，**輸入滿長度自動跳到下一欄**（適合代碼、條碼機）；`AutoNext="false"` 可關閉。
+- 下拉選單展開時 Enter 為選取項目；多行文字中 Enter 為換行。
+
+## 範例
+
+### 輸入表單
+
+```razor
+<EditForm Model="model" OnValidSubmit="SaveAsync" class="base-keyboard-nav">
+    <DataAnnotationsValidator />
+    <div class="base-field-grid">
+        <BaseField Label="局號" Required="true">
+            <BaseTextBox @bind-Value="model.BranchNo" MaxLength="6" Width="120px" />
+        </BaseField>
+        <BaseField Label="單位" Required="true">
+            <BaseSelect @bind-Value="model.Unit" Options="unitOptions" />
+        </BaseField>
+        <BaseField Label="數量">
+            <BaseNumeric @bind-Value="model.Qty" Min="1" Max="9999" />
+        </BaseField>
+        <BaseField Label="日期">
+            <BaseDatePicker @bind-Value="model.Date" Roc="true" />
+        </BaseField>
+    </div>
+    <div class="base-button-bar">
+        <BaseButton Text="儲存" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Save" ButtonType="ButtonType.Submit" />
+    </div>
+</EditForm>
+
+@code {
+    private static readonly BaseOption<string?>[] unitOptions =
+    [
+        new("A", "A - 台北郵局"),
+        new("B", "B - 台中郵局"),
+    ];
+}
+```
+
+### 查詢維護畫面
 
 完整範例見 `files/Components/Pages/Users/`（使用者維護）。
 
-### 查詢頁
-
 ```razor
-@page "/users"
-@inject UserService UserService
-@inject BaseDialogService Dialog
-@inject BaseNotifier Notifier
-
-<BaseQueryPanel OnSearch="SearchAsync" OnClear="ClearAsync" Busy="loading">
+<BaseQueryPanel OnSearch="SearchAsync" OnReset="ResetAsync" Busy="loading">
     <BaseField Label="帳號"><BaseTextBox @bind-Value="query.Username" /></BaseField>
     <BaseField Label="狀態">
         <BaseSelect @bind-Value="query.IsActive" Options="statusOptions" AllText="－ 全部 －" />
     </BaseField>
 </BaseQueryPanel>
 
-<BaseDataGrid Items="users" Loading="loading">
+<BaseDataGrid Items="users" Loading="loading" ColumnWidths="1fr 2fr 200px">
     <ToolBarContent>
-        <BaseButton Text="新增" AccessKey="A" Kind="BaseButtonKind.Primary" OnClick="CreateAsync" />
+        <BaseButton Text="新增" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Add" OnClick="CreateAsync" />
     </ToolBarContent>
     <Columns>
-        <PropertyColumn Property="x => x.Username" Title="帳號" />
-        <PropertyColumn Property="x => x.CreatedDate" Title="建立日期" Format="yyyy/MM/dd" />
-        <TemplateColumn Title="操作" Sortable="false">
-            <CellTemplate>
-                <BaseButton Text="編輯" OnClick="() => EditAsync(context.Item)" />
-                <BaseButton Text="刪除" Kind="BaseButtonKind.Danger" OnClick="() => DeleteAsync(context.Item)" />
-            </CellTemplate>
+        <PropertyColumn Property="x => x.Username" Title="帳號" Sortable="true" />
+        <PropertyColumn Property="x => x.CreatedDate" Title="建立日期" Format="yyyy/MM/dd" Align="Align.Center" />
+        <TemplateColumn Title="操作" Align="Align.Center" Context="user">
+            <BaseButton Text="編輯" AccessKey="" Icon="BaseIcon.Edit" OnClick="() => EditAsync(user)" />
+            <BaseButton Text="刪除" AccessKey="" Kind="BaseButtonKind.Danger" Icon="BaseIcon.Delete" OnClick="() => DeleteAsync(user)" />
         </TemplateColumn>
     </Columns>
 </BaseDataGrid>
 
 @code {
-    private static readonly BaseOption<bool?>[] statusOptions = [new(true, "啟用"), new(false, "停用")];
-
     private async Task CreateAsync()
     {
-        if (await Dialog.ShowFormAsync<UserEditDialog>("使用者新增"))
+        if (await Dialog.ShowFormAsync<UserEditDialog, UserEditArgs>("使用者新增", new UserEditArgs(null)))
             await SearchAsync();
     }
 
     private async Task DeleteAsync(UserDto user)
     {
-        if (!await Dialog.ConfirmAsync($"確認要刪除「{user.Username}」嗎？", "刪除確認", "刪除", danger: true))
+        if (!await Dialog.ConfirmAsync($"確認要刪除「{user.Username}」嗎？", "刪除確認", "刪除"))
             return;
         // 刪除後 Notifier.Success("已刪除")
     }
@@ -119,33 +189,39 @@
 
 ```razor
 @* UserEditDialog.razor *@
+@implements IDialogContentComponent<UserEditArgs>
+
 <BaseFormDialog Model="model" OnSave="SaveAsync">
     <BaseField Label="帳號" Required="true"><BaseTextBox @bind-Value="model.Username" /></BaseField>
-    <BaseField Label="電子郵件" Required="true"><BaseTextBox @bind-Value="model.Email" InputType="InputType.Email" /></BaseField>
     <BaseField Label="狀態"><BaseCheckBox @bind-Value="model.IsActive" Label="啟用" /></BaseField>
-    <BaseField Label="備註" ColSpan="2"><BaseTextBox @bind-Value="model.Remark" /></BaseField>
+    <BaseField Label="備註" ColSpan="2"><BaseTextArea @bind-Value="model.Remark" /></BaseField>
 </BaseFormDialog>
 
 @code {
-    [Parameter] public int? UserId { get; set; }
+    // 由 BaseDialogService.ShowFormAsync 傳入的資料 (需為類別，例如 record UserEditArgs(int? UserId))
+    [Parameter] public UserEditArgs Content { get; set; } = default!;
 
     // 驗證通過後呼叫；回傳 true 關閉對話框，false 保持開啟 (例如帳號重複)
     private async Task<bool> SaveAsync() { ... }
 }
 ```
 
-- `model` 的 DataAnnotations（`[Required]`、`[EmailAddress]`…）會自動驗證，錯誤顯示在欄位下方。
-- `ColSpan="2"` 讓欄位橫跨整列。
-- `Columns` 參數可改變每列欄位組數（預設 2）。
-
 ## 自訂外觀
 
-- **配色**：覆寫 `base-components.css` 開頭的 CSS 變數（`--base-green-main`、`--base-label-bg`…）
-- **MudBlazor 主題**：`<BaseProviders Theme="myTheme" />` 傳入自訂的 `MudTheme`，預設見 `BaseTheme.cs`
+- **主題色**：`<BaseProviders AccentColor="#0f6cbd" />`（預設綠色 `#4f8f26`）
+- **欄位表格、清單配色**：覆寫 `base-components.css` 開頭的 CSS 變數（`--base-green-main`、`--base-label-bg`…）
+- **輸入框寬度**：各元件的 `Width` 參數，例如 `Width="120px"`、`Width="100%"`
 
 ## 擴充新元件
 
-1. 在本專案新增 `BaseXxx.razor`，內部使用 MudBlazor 元件並固定公司慣用的參數（尺寸、樣式、文字）。
-2. 只開放各系統真正需要調整的參數；需要 `@bind-Value` 時提供 `Value`、`ValueChanged`、`ValueExpression` 三個參數。
-3. 樣式加在 `wwwroot/base-components.css`，類別名稱以 `base-` 開頭。
-4. 在本文件的元件一覽補上說明。
+1. 在本專案新增 `BaseXxx.razor`，內部使用 Fluent UI 元件並固定公司慣用的參數（尺寸、文字、行為）。
+2. 只開放各系統真正需要調整的參數，且參數型別使用本庫自己的型別，不要讓 Fluent UI 的型別出現在頁面上。
+3. 需要 `@bind-Value` 時提供 `Value`、`ValueChanged`、`ValueExpression` 三個參數；
+   並參考既有元件，在 `EditContext` 存在時加上 `<FluentValidationMessage For="@ValueExpression" />`。
+4. 樣式加在 `wwwroot/base-components.css`，類別名稱以 `base-` 開頭。
+5. 在「底層元件展示」頁加上示範，並在本文件的元件一覽補上說明。
+
+## 版本與升級
+
+- 目前使用 Fluent UI Blazor **4.14.4**（穩定版）。
+- Fluent UI Blazor 5.x 已推出（2026/09），屬大版本更新、API 有異動；待其穩定後再評估升級，升級時只需修改本專案。
