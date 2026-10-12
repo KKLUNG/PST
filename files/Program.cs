@@ -29,6 +29,12 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserService>();
 
+// 共用資料 (參數檔、地址)：提供給底層元件 BaseParameterSelect、BaseAddress
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<CommonDataService>();
+builder.Services.AddScoped<IBaseParameterProvider>(sp => sp.GetRequiredService<CommonDataService>());
+builder.Services.AddScoped<IBaseAddressProvider>(sp => sp.GetRequiredService<CommonDataService>());
+
 // ========== 設定驗證與授權 (Cookie) ==========
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

@@ -18,11 +18,25 @@ namespace BlazorUserManagement.Data
         public DbSet<User> Users { get; set; }
 
         /// <summary>
+        /// 參數檔
+        /// </summary>
+        public DbSet<Parameter> Parameters { get; set; }
+
+        /// <summary>
+        /// 地址行政區與郵遞區號
+        /// </summary>
+        public DbSet<AddressArea> AddressAreas { get; set; }
+
+        /// <summary>
         /// 設定模型約定
         /// </summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // 共用資料表的複合主鍵
+            modelBuilder.Entity<Parameter>().HasKey(p => new { p.SetItem, p.SetType });
+            modelBuilder.Entity<AddressArea>().HasKey(a => new { a.County, a.District });
 
             // 使用者實體配置
             modelBuilder.Entity<User>(entity =>

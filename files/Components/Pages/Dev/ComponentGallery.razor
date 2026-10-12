@@ -57,6 +57,26 @@
         <BaseField Label="同意">
             <BaseCheckBox @bind-Value="model.Agree" Label="我已閱讀並同意" />
         </BaseField>
+        <BaseField Label="付款方式（參數檔）" Required="true">
+            <BaseParameterSelect @bind-Value="model.PayType" SetItem="PAY_TYPE" />
+        </BaseField>
+        <BaseField Label="單位（參數檔）">
+            <BaseParameterSelect @bind-Value="model.ParamUnit" SetItem="UNIT" ShowCode="false" AllText="－ 全部 －" />
+        </BaseField>
+        <BaseField Label="查詢期間" ColSpan="2">
+            <BaseDateRange @bind-StartValue="model.StartDate" @bind-EndValue="model.EndDate" MaxMonths="3" Roc="true" />
+        </BaseField>
+        <BaseField Label="手機">
+            <BaseMobile @bind-Value="model.Mobile" />
+        </BaseField>
+        <BaseField Label="電話">
+            <BaseTelephone @bind-Value="model.Tel" />
+        </BaseField>
+        <BaseField Label="地址" Required="true" ColSpan="2">
+            <BaseAddress @bind-County="model.County" @bind-District="model.District"
+                         @bind-ZipCode="model.ZipCode" @bind-Detail="model.AddressDetail"
+                         FullAddressChanged="@(v => model.FullAddress = v)" />
+        </BaseField>
         <BaseField Label="備註" ColSpan="2">
             <BaseTextArea @bind-Value="model.Remark" MaxLength="200" Placeholder="多行文字，Enter 為換行" />
         </BaseField>
@@ -66,6 +86,12 @@
         <BaseButton Text="重設" Icon="BaseIcon.Reset" OnClick="Reset" />
     </div>
 </EditForm>
+
+<div class="section-title">檔案上傳（批次匯入）</div>
+<BaseFileUpload Accept=".csv" Multiple="true" MaxFileSizeMB="5"
+                TemplateUrl="templates/users-sample.csv"
+                Hint="請依範本格式填寫（帳號,電子郵件,姓名），第一列為標題。此處僅示範檢查，不會寫入資料庫。"
+                OnUpload="ImportDemoAsync" />
 
 <div class="section-title">唯讀與停用</div>
 <div class="base-field-grid">
@@ -188,7 +214,71 @@
 
         public bool Agree { get; set; }
 
+        [Required(ErrorMessage = "請選擇付款方式")]
+        public string? PayType { get; set; }
+
+        public string? ParamUnit { get; set; }
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        [BaseMobile]
+        public string? Mobile { get; set; }
+
+        [BaseTelephone]
+        public string? Tel { get; set; }
+
+        public string? County { get; set; }
+
+        public string? District { get; set; }
+
+        public string? ZipCode { get; set; }
+
+        [Required(ErrorMessage = "請輸入地址")]
+        public string? AddressDetail { get; set; }
+
+        public string? FullAddress { get; set; }
+
         [StringLength(200, ErrorMessage = "備註最多 200 個字元")]
         public string? Remark { get; set; }
+    }
+
+    /// <summary>
+    /// 匯入示範：檢查 CSV 每列欄位數與必填欄位，回傳結果 (不寫入資料庫)
+    /// </summary>
+    private Task<BaseUploadResult> ImportDemoAsync(IReadOnlyList<BaseUploadFile> files)
+    {
+        var messages = new List<string>();
+        var success = true;
+
+        foreach (var file in files)
+        {
+            var lines = System.Text.Encoding.UTF8.GetString(file.Content)
+                .TrimStart('﻿')
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.TrimEnd('\r'))
+                .Where(line => line.Length > 0)
+                .Skip(1)
+                .ToList();
+
+            var errors = lines
+                .Select((line, index) => (Row: index + 2, Columns: line.Split(',')))
+                .Where(x => x.Columns.Length < 3 || x.Columns.Take(2).Any(string.IsNullOrWhiteSpace))
+                .Select(x => $"{file.Name} 第 {x.Row} 列：帳號、電子郵件不可空白")
+                .ToList();
+
+            if (errors.Count > 0)
+            {
+                success = false;
+                messages.AddRange(errors);
+            }
+            else
+            {
+                messages.Add($"{file.Name}：檢查通過，共 {lines.Count} 筆資料（示範，未寫入資料庫）");
+            }
+        }
+
+        return Task.FromResult(new BaseUploadResult(success, messages));
     }
 }
