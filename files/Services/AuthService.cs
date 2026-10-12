@@ -13,16 +13,16 @@ namespace BlazorUserManagement.Services
     public class AuthService
     {
         private readonly IConfiguration _configuration;
-        private readonly ApplicationDbContext _context;
+        private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
         private readonly ILogger<AuthService> _logger;
 
         public AuthService(
             IConfiguration configuration,
-            ApplicationDbContext context,
+            IDbContextFactory<ApplicationDbContext> contextFactory,
             ILogger<AuthService> logger)
         {
             _configuration = configuration;
-            _context = context;
+            _contextFactory = contextFactory;
             _logger = logger;
         }
 
@@ -33,8 +33,9 @@ namespace BlazorUserManagement.Services
         {
             try
             {
+                await using var context = await _contextFactory.CreateDbContextAsync();
                 // 檢查使用者是否存在
-                var user = await _context.Users
+                var user = await context.Users
                     .FirstOrDefaultAsync(u => u.Username == request.Username);
 
                 if (user == null)
@@ -71,7 +72,7 @@ namespace BlazorUserManagement.Services
 
                 // 更新最後登入時間
                 user.LastLoginDate = DateTime.Now;
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
                 // 產生 JWT Token
                 var token = GenerateJwtToken(user);

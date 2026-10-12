@@ -8,16 +8,16 @@ namespace BlazorUserManagement.Services
     /// </summary>
     public class UserService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
         private readonly ILogger<UserService> _logger;
         private readonly AuthService _authService;
 
         public UserService(
-            ApplicationDbContext context,
+            IDbContextFactory<ApplicationDbContext> contextFactory,
             ILogger<UserService> logger,
             AuthService authService)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _logger = logger;
             _authService = authService;
         }
@@ -29,7 +29,8 @@ namespace BlazorUserManagement.Services
         {
             try
             {
-                var users = await _context.Users
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var users = await context.Users
                     .OrderByDescending(u => u.CreatedDate)
                     .ToListAsync();
 
@@ -49,7 +50,8 @@ namespace BlazorUserManagement.Services
         {
             try
             {
-                var user = await _context.Users.FindAsync(userId);
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var user = await context.Users.FindAsync(userId);
                 if (user == null)
                 {
                     throw new InvalidOperationException($"使用者ID {userId} 不存在");
@@ -71,14 +73,15 @@ namespace BlazorUserManagement.Services
         {
             try
             {
+                await using var context = await _contextFactory.CreateDbContextAsync();
                 // 檢查使用者名稱是否已存在
-                if (await _context.Users.AnyAsync(u => u.Username == request.Username))
+                if (await context.Users.AnyAsync(u => u.Username == request.Username))
                 {
                     throw new InvalidOperationException($"使用者名稱 '{request.Username}' 已存在");
                 }
 
                 // 檢查電子郵件是否已存在
-                if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+                if (await context.Users.AnyAsync(u => u.Email == request.Email))
                 {
                     throw new InvalidOperationException($"電子郵件 '{request.Email}' 已被使用");
                 }
@@ -99,8 +102,8 @@ namespace BlazorUserManagement.Services
                     CreatedDate = DateTime.Now
                 };
 
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
+                context.Users.Add(user);
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation($"新增使用者 '{user.Username}' 成功 (ID: {user.UserId})");
 
@@ -120,7 +123,8 @@ namespace BlazorUserManagement.Services
         {
             try
             {
-                var user = await _context.Users.FindAsync(userId);
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var user = await context.Users.FindAsync(userId);
                 if (user == null)
                 {
                     throw new InvalidOperationException($"使用者ID {userId} 不存在");
@@ -128,14 +132,14 @@ namespace BlazorUserManagement.Services
 
                 // 檢查使用者名稱是否被其他使用者使用
                 if (user.Username != request.Username &&
-                    await _context.Users.AnyAsync(u => u.Username == request.Username))
+                    await context.Users.AnyAsync(u => u.Username == request.Username))
                 {
                     throw new InvalidOperationException($"使用者名稱 '{request.Username}' 已被他人使用");
                 }
 
                 // 檢查電子郵件是否被其他使用者使用
                 if (user.Email != request.Email &&
-                    await _context.Users.AnyAsync(u => u.Email == request.Email))
+                    await context.Users.AnyAsync(u => u.Email == request.Email))
                 {
                     throw new InvalidOperationException($"電子郵件 '{request.Email}' 已被他人使用");
                 }
@@ -154,8 +158,8 @@ namespace BlazorUserManagement.Services
 
                 user.UpdatedDate = DateTime.Now;
 
-                _context.Users.Update(user);
-                await _context.SaveChangesAsync();
+                context.Users.Update(user);
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation($"編輯使用者 '{user.Username}' (ID: {userId}) 成功");
 
@@ -175,14 +179,15 @@ namespace BlazorUserManagement.Services
         {
             try
             {
-                var user = await _context.Users.FindAsync(userId);
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var user = await context.Users.FindAsync(userId);
                 if (user == null)
                 {
                     throw new InvalidOperationException($"使用者ID {userId} 不存在");
                 }
 
-                _context.Users.Remove(user);
-                await _context.SaveChangesAsync();
+                context.Users.Remove(user);
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation($"刪除使用者 '{user.Username}' (ID: {userId}) 成功");
             }
@@ -200,7 +205,8 @@ namespace BlazorUserManagement.Services
         {
             try
             {
-                var user = await _context.Users.FindAsync(userId);
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var user = await context.Users.FindAsync(userId);
                 if (user == null)
                 {
                     throw new InvalidOperationException($"使用者ID {userId} 不存在");
@@ -209,8 +215,8 @@ namespace BlazorUserManagement.Services
                 user.IsActive = false;
                 user.UpdatedDate = DateTime.Now;
 
-                _context.Users.Update(user);
-                await _context.SaveChangesAsync();
+                context.Users.Update(user);
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation($"停用使用者 '{user.Username}' (ID: {userId}) 成功");
             }
@@ -228,7 +234,8 @@ namespace BlazorUserManagement.Services
         {
             try
             {
-                var user = await _context.Users.FindAsync(userId);
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var user = await context.Users.FindAsync(userId);
                 if (user == null)
                 {
                     throw new InvalidOperationException($"使用者ID {userId} 不存在");
@@ -237,8 +244,8 @@ namespace BlazorUserManagement.Services
                 user.IsActive = true;
                 user.UpdatedDate = DateTime.Now;
 
-                _context.Users.Update(user);
-                await _context.SaveChangesAsync();
+                context.Users.Update(user);
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation($"啟用使用者 '{user.Username}' (ID: {userId}) 成功");
             }
@@ -256,12 +263,13 @@ namespace BlazorUserManagement.Services
         {
             try
             {
+                await using var context = await _contextFactory.CreateDbContextAsync();
                 if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
                 {
                     throw new InvalidOperationException("新密碼必須至少6個字元");
                 }
 
-                var user = await _context.Users.FindAsync(userId);
+                var user = await context.Users.FindAsync(userId);
                 if (user == null)
                 {
                     throw new InvalidOperationException($"使用者ID {userId} 不存在");
@@ -270,8 +278,8 @@ namespace BlazorUserManagement.Services
                 user.PasswordHash = _authService.HashPassword(newPassword);
                 user.UpdatedDate = DateTime.Now;
 
-                _context.Users.Update(user);
-                await _context.SaveChangesAsync();
+                context.Users.Update(user);
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation($"使用者 '{user.Username}' (ID: {userId}) 密碼變更成功");
             }
@@ -289,7 +297,8 @@ namespace BlazorUserManagement.Services
         {
             try
             {
-                var users = await _context.Users
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var users = await context.Users
                     .Where(u => u.Username.Contains(searchTerm) ||
                                 u.Email.Contains(searchTerm) ||
                                 u.FullName.Contains(searchTerm))
@@ -312,7 +321,8 @@ namespace BlazorUserManagement.Services
         {
             try
             {
-                var users = _context.Users.AsNoTracking();
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var users = context.Users.AsNoTracking();
 
                 if (!string.IsNullOrWhiteSpace(query.Username))
                 {

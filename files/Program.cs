@@ -9,7 +9,8 @@ using BlazorUserManagement.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // ========== 設定資料庫連接 ==========
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+// 使用 DbContextFactory：每次操作建立新的 DbContext，避免長時間連線共用同一個 DbContext
+builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlServerOptionsAction: sqlOptions =>
@@ -73,7 +74,7 @@ var app = builder.Build();
 // 資料庫由 Data/CreateDatabase.sql 建立，此處只確認能否連線
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    using var db = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext();
     try
     {
         if (db.Database.CanConnect())
