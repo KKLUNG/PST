@@ -9,7 +9,7 @@
     <RootNamespace>BlazorUserManagement</RootNamespace>
     <Version>1.0.0</Version>
     <Authors>IT Team</Authors>
-    <Description>Blazor Server 使用者管理系統範例，包含登入與使用者維護功能</Description>
+    <Description>ASP.NET Core Razor Pages 使用者管理系統，包含登入與使用者維護功能</Description>
   </PropertyGroup>
 
   <!-- NuGet 套件依賴 -->
@@ -26,9 +26,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
 
-    <!-- MudBlazor UI 元件庫 -->
-    <PackageReference Include="MudBlazor" Version="6.10.0" />
-
     <!-- 密碼加密 -->
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
 
@@ -39,10 +36,6 @@
     <!-- Logging -->
     <PackageReference Include="Serilog" Version="3.1.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
-
-    <!-- Blazor -->
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

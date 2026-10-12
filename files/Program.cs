@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using MudBlazor.Services;
-using BlazorUserManagement;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using BlazorUserManagement.Data;
 using BlazorUserManagement.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,25 +21,27 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserService>();
 
-// ========== 設定驗證與授權 ==========
+// ========== 設定驗證與授權 (Cookie) ==========
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/login";
-        options.LogoutPath = "/logout";
-        options.AccessDeniedPath = "/access-denied";
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/Login";
         options.ExpireTimeSpan = TimeSpan.FromHours(1);
         options.SlidingExpiration = true;
     });
 
 builder.Services.AddAuthorization();
 
-// ========== 加入 Razx Components & Routing ==========
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
-// ========== 加入 MudBlazor 元件庫 ==========
-builder.Services.AddMudServices();
+// ========== 加入 Razor Pages ==========
+// 預設所有頁面都需要登入，僅登入頁與錯誤頁開放匿名存取
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AuthorizeFolder("/");
+    options.Conventions.AllowAnonymousToPage("/Account/Login");
+    options.Conventions.AllowAnonymousToPage("/Error");
+});
 
 // ========== 設定日誌 ==========
 builder.Logging.ClearProviders();
@@ -56,33 +56,27 @@ else
     builder.Logging.SetMinimumLevel(LogLevel.Information);
 }
 
-// ========== 設定 CORS (如需要) ==========
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowLocalhost", policy =>
-    {
-        policy
-            .WithOrigins("https://localhost:7XXX")  // 改為您的實際 localhost 埠
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-    });
-});
-
 var app = builder.Build();
 
-// ========== 資料庫遷移 ==========
+// ========== 檢查資料庫連線 ==========
+// 資料庫由 Data/CreateDatabase.sql 建立，此處只確認能否連線
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try
     {
-        // 應用待處理的遷移
-        db.Database.Migrate();
-        Console.WriteLine("✓ 資料庫遷移成功");
+        if (db.Database.CanConnect())
+        {
+            Console.WriteLine("✓ 資料庫連線成功");
+        }
+        else
+        {
+            Console.WriteLine("✗ 無法連線資料庫，請確認連接字串與 CreateDatabase.sql 是否已執行");
+        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"✗ 資料庫遷移失敗: {ex.Message}");
+        Console.WriteLine($"✗ 資料庫連線失敗: {ex.Message}");
     }
 }
 
@@ -95,22 +89,21 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseAntiforgery();
+app.UseRouting();
 
 // ========== 驗證與授權中間件 ==========
 app.UseAuthentication();
 app.UseAuthorization();
 
 // ========== 路由設定 ==========
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+app.MapRazorPages();
 
 // ========== 健康檢查端點 (選用) ==========
-app.MapGet("/health", () => new { status = "ok", timestamp = DateTime.UtcNow });
+app.MapGet("/health", () => new { status = "ok", timestamp = DateTime.UtcNow }).AllowAnonymous();
 
 // ========== 記錄應用啟動資訊 ==========
 Console.WriteLine($"========================================");
-Console.WriteLine($"🚀 Blazor User Management 應用已啟動");
+Console.WriteLine($"🚀 使用者管理系統 (Razor Pages) 已啟動");
 Console.WriteLine($"環境: {app.Environment.EnvironmentName}");
 Console.WriteLine($"時間: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
 Console.WriteLine($"========================================");

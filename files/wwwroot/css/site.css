@@ -1,0 +1,501 @@
+/* ============================================
+   使用者管理系統 - 版面樣式
+   風格：傳統後台系統 (綠色標題列、左側樹狀選單、查詢條件表格)
+   ============================================ */
+
+:root {
+    --green-dark: #3f7a1f;
+    --green-main: #6fae3f;
+    --green-light: #a9d66f;
+    --green-pale: #e7f2d8;
+    --green-paler: #f4f9ee;
+    --border: #a8c88b;
+    --text: #222;
+    --text-muted: #666;
+    --link: #1a4fa0;
+    --danger: #c0392b;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Microsoft JhengHei", "微軟正黑體", "PMingLiU", "新細明體", Arial, sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: #fff;
+}
+
+a {
+    color: var(--link);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ========== 頁首 ========== */
+.sys-header {
+    display: flex;
+    align-items: stretch;
+    height: 46px;
+    border-bottom: 2px solid var(--green-dark);
+}
+
+.sys-logo {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    min-width: 170px;
+    background: #fff;
+}
+
+.sys-logo-text {
+    font-size: 20px;
+    font-weight: bold;
+    color: #c0272d;
+    letter-spacing: 2px;
+}
+
+.sys-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to bottom, #c4e59a 0%, var(--green-light) 45%, var(--green-main) 100%);
+    font-size: 20px;
+    font-weight: bold;
+    color: #1e3d0c;
+    letter-spacing: 4px;
+}
+
+.sys-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    background: linear-gradient(to bottom, #c4e59a 0%, var(--green-light) 45%, var(--green-main) 100%);
+}
+
+.sys-user-name {
+    background: #fff;
+    border: 1px solid #7f9db9;
+    padding: 2px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.inline-form {
+    display: inline;
+    margin: 0;
+}
+
+/* ========== 麵包屑 ========== */
+.sys-breadcrumb {
+    padding: 4px 10px;
+    background: linear-gradient(to bottom, #fbfdf8, var(--green-pale));
+    border-bottom: 1px solid var(--border);
+    color: var(--green-dark);
+    font-weight: bold;
+}
+
+.crumb-arrow {
+    color: var(--green-main);
+    margin-right: 4px;
+}
+
+/* ========== 主體：左選單 + 內容 ========== */
+.sys-body {
+    display: flex;
+    min-height: calc(100vh - 74px);
+}
+
+.sys-menu {
+    width: 170px;
+    flex-shrink: 0;
+    padding: 8px 4px;
+    background: var(--green-paler);
+    border-right: 1px solid var(--border);
+    font-size: 12px;
+}
+
+.sys-main {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+}
+
+/* ========== 樹狀選單 ========== */
+.tree,
+.tree ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tree ul {
+    margin-left: 10px;
+    padding-left: 8px;
+    border-left: 1px dotted #999;
+}
+
+.tree li {
+    margin: 2px 0;
+}
+
+.tree summary {
+    cursor: pointer;
+    padding: 1px 2px;
+    color: #333;
+}
+
+.tree summary::marker {
+    color: var(--green-main);
+}
+
+.tree-leaf a {
+    display: block;
+    padding: 1px 4px;
+    color: #333;
+}
+
+.tree-leaf a::before {
+    content: "\25AB";
+    margin-right: 4px;
+    color: var(--green-main);
+}
+
+.tree-leaf.active a {
+    background: #ffeaa0;
+    border: 1px solid #e0c060;
+    font-weight: bold;
+}
+
+/* ========== 查詢條件 / 表單表格 ========== */
+.query-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+}
+
+.query-table th,
+.query-table td {
+    border: 1px solid var(--border);
+    padding: 3px 6px;
+    vertical-align: middle;
+}
+
+.query-table th {
+    width: 14%;
+    background: var(--green-pale);
+    font-weight: normal;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.query-table th::before {
+    content: "\25CB ";
+    color: var(--green-dark);
+}
+
+.query-table td {
+    background: #fff;
+}
+
+.required {
+    color: var(--danger);
+    margin-left: 2px;
+}
+
+/* ========== 輸入欄位 ========== */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select {
+    font: inherit;
+    height: 22px;
+    padding: 1px 4px;
+    border: 1px solid #7f9db9;
+    background: #fff;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    width: 220px;
+    max-width: 100%;
+}
+
+input[readonly] {
+    background: #eee;
+    color: #555;
+}
+
+input:focus,
+select:focus {
+    outline: 1px solid #f0b400;
+    background: #fffbe0;
+}
+
+/* ========== 按鈕 ========== */
+.button-bar {
+    text-align: center;
+    margin: 6px 0 10px;
+}
+
+.btn {
+    display: inline-block;
+    font: inherit;
+    padding: 2px 12px;
+    margin: 0 2px;
+    color: #000;
+    background: linear-gradient(to bottom, #ffffff, #e1e1e1);
+    border: 1px solid #8e8e8e;
+    border-radius: 2px;
+    cursor: pointer;
+    line-height: 18px;
+}
+
+.btn:hover {
+    background: linear-gradient(to bottom, #fffbe8, #f0dfa6);
+    border-color: #c4a24a;
+    text-decoration: none;
+}
+
+.btn-small {
+    padding: 0 8px;
+    font-size: 12px;
+}
+
+.btn-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--link);
+    cursor: pointer;
+    font: inherit;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.btn-link.danger {
+    color: var(--danger);
+}
+
+/* ========== 資料清單 ========== */
+.grid-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 4px 0;
+}
+
+.grid-wrapper {
+    overflow-x: auto;
+}
+
+.data-grid {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+}
+
+.data-grid th,
+.data-grid td {
+    border: 1px solid var(--border);
+    padding: 3px 6px;
+    white-space: nowrap;
+}
+
+.data-grid th {
+    background: linear-gradient(to bottom, var(--green-light), var(--green-main));
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+}
+
+.data-grid tbody tr:nth-child(even) {
+    background: var(--green-paler);
+}
+
+.data-grid tbody tr:hover {
+    background: #fff8d0;
+}
+
+.data-grid .center {
+    text-align: center;
+}
+
+.data-grid .empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 12px;
+}
+
+.status-active {
+    color: var(--green-dark);
+    font-weight: bold;
+}
+
+.status-inactive {
+    color: var(--danger);
+    font-weight: bold;
+}
+
+/* ========== 訊息與驗證 ========== */
+.msg {
+    padding: 5px 10px;
+    margin-bottom: 6px;
+    border: 1px solid;
+}
+
+.msg-success {
+    background: #eaf7e1;
+    border-color: #8cc56b;
+    color: #2d6a12;
+}
+
+.msg-error {
+    background: #fdecea;
+    border-color: #e5a29b;
+    color: var(--danger);
+}
+
+.field-validation-error {
+    display: block;
+    color: var(--danger);
+    font-size: 12px;
+}
+
+.input-validation-error {
+    border-color: var(--danger) !important;
+    background: #fff6f5;
+}
+
+.validation-summary-errors {
+    color: var(--danger);
+}
+
+.validation-summary-errors ul {
+    margin: 0 0 6px;
+    padding-left: 20px;
+}
+
+.validation-summary-valid {
+    display: none;
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+.section-title {
+    margin: 12px 0 4px;
+    padding-left: 6px;
+    border-left: 4px solid var(--green-main);
+    font-weight: bold;
+    color: var(--green-dark);
+}
+
+.link-list {
+    margin: 4px 0;
+    padding-left: 22px;
+    line-height: 1.8;
+}
+
+/* ========== 登入頁 ========== */
+.login-main {
+    display: flex;
+    justify-content: center;
+    padding: 60px 16px;
+    background: var(--green-paler);
+    min-height: calc(100vh - 74px);
+}
+
+.login-box {
+    width: 100%;
+    max-width: 380px;
+    align-self: flex-start;
+    border: 1px solid var(--border);
+    background: #fff;
+}
+
+.login-box-title {
+    padding: 6px 10px;
+    background: linear-gradient(to bottom, var(--green-light), var(--green-main));
+    color: #fff;
+    font-weight: bold;
+}
+
+.login-box-body {
+    padding: 12px;
+}
+
+.login-box .query-table th {
+    width: 30%;
+}
+
+.login-box input[type="text"],
+.login-box input[type="password"] {
+    width: 100%;
+}
+
+.login-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* ========== 窄螢幕 ========== */
+@media (max-width: 760px) {
+    .sys-header {
+        height: auto;
+        flex-wrap: wrap;
+    }
+
+    .sys-logo {
+        min-width: 0;
+    }
+
+    .sys-title {
+        padding: 6px 0;
+        font-size: 16px;
+        letter-spacing: 1px;
+    }
+
+    .sys-user {
+        width: 100%;
+        justify-content: flex-end;
+        padding: 4px 10px;
+    }
+
+    .sys-body {
+        flex-direction: column;
+    }
+
+    .sys-menu {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .query-table,
+    .query-table tbody,
+    .query-table tr,
+    .query-table th,
+    .query-table td {
+        display: block;
+        width: 100%;
+    }
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - 使用者管理系統</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <!-- ========== 頁首 (不含選單，供登入頁、錯誤頁使用) ========== -->
+    <header class="sys-header">
+        <div class="sys-logo">
+            <span class="sys-logo-text">公司名稱</span>
+        </div>
+        <div class="sys-title">使用者管理系統</div>
+    </header>
+    <div class="sys-breadcrumb">
+        <span class="crumb-arrow">&#9658;</span>
+        <span>@ViewData["Title"]</span>
+    </div>
+
+    <main class="login-main">
+        @RenderBody()
+    </main>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
