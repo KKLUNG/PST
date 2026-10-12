@@ -1,242 +1,96 @@
-# Blazor Server + MudBlazor Web 應用範例
-## 包含登入及使用者維護功能
+# 使用者管理系統（ASP.NET Core Razor Pages）
 
-### 專案概述
-本專案展示 .NET 8 Blazor Server 應用，整合 MudBlazor UI 元件庫，實現以下功能：
-- ✅ 使用者登入驗證
-- ✅ 使用者管理 (CRUD 操作)
-- ✅ SQL Server 2016 資料庫連接
-- ✅ Entity Framework Core ORM
-- ✅ 響應式設計
+以 ASP.NET Core 8 Razor Pages 製作的使用者帳號管理系統，包含登入、使用者查詢、新增、編輯、刪除。
 
----
+## 功能
 
-## 📋 前置準備
+| 頁面 | 網址 | 說明 |
+|------|------|------|
+| 登入 | `/Account/Login` | 帳號密碼登入（Cookie 驗證），未登入時進入任何頁面都會導向此頁 |
+| 首頁 | `/` | 顯示登入者資訊與功能連結 |
+| 使用者查詢 | `/Users` | 依帳號、電子郵件、姓名、狀態查詢；可編輯、刪除 |
+| 使用者新增 | `/Users/Edit` | 建立新帳號（密碼必填） |
+| 使用者編輯 | `/Users/Edit/{id}` | 修改資料；密碼留空則維持原密碼；帳號不可修改 |
 
-### 系統需求
-- Visual Studio 2022 (Community/Professional/Enterprise)
+快速鍵：查詢 `Alt+Q`、清除 `Alt+C`、新增 `Alt+A`、存檔 `Alt+S`、返回 `Alt+R`。
+
+## 執行前需要安裝
+
 - .NET 8 SDK
-- SQL Server 2016 或更新版本
-- 至少 2GB 可用磁碟空間
+- SQL Server 2016 以上（或 LocalDB）
+- SQL Server Management Studio 或 `sqlcmd`（執行建資料庫腳本用）
 
-### 建立步驟
+## 執行步驟
 
-#### 1️⃣ 建立資料庫
-在 SQL Server 執行以下 T-SQL 腳本：
+### 1. 建立資料庫
 
-```sql
--- 建立資料庫
-CREATE DATABASE BlazorUserManagement;
-GO
+執行 `Data/CreateDatabase.sql`：
 
-USE BlazorUserManagement;
-GO
-
--- 建立使用者資料表
-CREATE TABLE Users (
-    UserId INT PRIMARY KEY IDENTITY(1,1),
-    Username NVARCHAR(50) NOT NULL UNIQUE,
-    Email NVARCHAR(100) NOT NULL UNIQUE,
-    PasswordHash NVARCHAR(255) NOT NULL,
-    FullName NVARCHAR(100),
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedDate DATETIME NOT NULL DEFAULT GETDATE(),
-    UpdatedDate DATETIME,
-    LastLoginDate DATETIME
-);
-
--- 建立索引
-CREATE INDEX IX_Users_Username ON Users(Username);
-CREATE INDEX IX_Users_Email ON Users(Email);
-
--- 插入測試帳號 (密碼: admin123 - BCrypt 加密)
--- 實際應用中應該在應用程式中加密密碼
-INSERT INTO Users (Username, Email, PasswordHash, FullName, IsActive, CreatedDate)
-VALUES 
-('admin', 'admin@company.com', '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36XQuvKm', '系統管理員', 1, GETDATE()),
-('user1', 'user1@company.com', '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36XQuvKm', '一般使用者', 1, GETDATE());
-
-GO
+```powershell
+sqlcmd -S 伺服器名稱 -U 帳號 -P 密碼 -f 65001 -i Data\CreateDatabase.sql
 ```
 
-#### 2️⃣ 在 VS2022 建立專案
-```bash
-dotnet new blazorserver -n BlazorUserManagement -f net8.0
-cd BlazorUserManagement
+> ⚠️ 若伺服器上已有名為 `BlazorUserManagement` 的資料庫，腳本會**先刪除再重建**。
+
+### 2. 設定連線字串
+
+`appsettings.json` 含資料庫帳號密碼，**不納入版本控制**。第一次使用時：
+
+```powershell
+Copy-Item appsettings.sample.json appsettings.json
 ```
 
-#### 3️⃣ 安裝必要的 NuGet 套件
-```bash
-dotnet add package MudBlazor
-dotnet add package Microsoft.EntityFrameworkCore
-dotnet add package Microsoft.EntityFrameworkCore.SqlServer
-dotnet add package Microsoft.EntityFrameworkCore.Tools
-dotnet add package BCrypt.Net-Next
-```
+再將 `appsettings.json` 中的 `YOUR_USER_ID`、`YOUR_PASSWORD` 改為實際帳號密碼。
 
----
+### 3. 執行
 
-## 📁 專案結構
+Visual Studio 按 `F5`，或：
 
-```
-BlazorUserManagement/
-├── Components/
-│   ├── Layout/
-│   │   ├── MainLayout.razor
-│   │   └── NavMenu.razor
-│   ├── Account/
-│   │   ├── Login.razor          ← 登入頁面
-│   │   └── Logout.razor         ← 登出頁面
-│   └── User/
-│       ├── UserList.razor       ← 使用者列表
-│       ├── UserEdit.razor       ← 使用者編輯
-│       └── UserForm.razor       ← 使用者表單
-├── Data/
-│   ├── ApplicationDbContext.cs   ← Entity Framework 上下文
-│   ├── User.cs                  ← 使用者實體類別
-│   └── AuthService.cs           ← 驗證服務
-├── Services/
-│   ├── UserService.cs           ← 使用者服務
-│   └── JwtTokenService.cs       ← JWT Token 服務
-├── App.razor                    ← 應用根元件
-├── Program.cs                   ← 應用設定
-├── appsettings.json             ← 設定檔
-└── appsettings.Development.json ← 開發設定
-
-```
-
----
-
-## 🔗 連接字串設定
-
-編輯 **appsettings.json**：
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=YOUR_SERVER;Database=BlazorUserManagement;Integrated Security=true;TrustServerCertificate=true;"
-  },
-  "Jwt": {
-    "SecretKey": "your-very-long-secret-key-minimum-32-characters-required-for-security",
-    "Issuer": "BlazorApp",
-    "Audience": "BlazorAppUsers",
-    "ExpirationMinutes": 60
-  },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information"
-    }
-  }
-}
-```
-
-> ⚠️ **重要**：
-> - 將 `YOUR_SERVER` 替換為您的 SQL Server 實例名稱 (例如: `LAPTOP\SQLEXPRESS`)
-> - `Integrated Security=true` 使用 Windows 驗證
-> - `TrustServerCertificate=true` 用於開發環境，生產環境應配置正確憑證
-
----
-
-## 🛠️ 主要程式文件說明
-
-### User.cs - 使用者實體
-```csharp
-public class User
-{
-    public int UserId { get; set; }
-    public string Username { get; set; }
-    public string Email { get; set; }
-    public string PasswordHash { get; set; }
-    public string FullName { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedDate { get; set; }
-    public DateTime? UpdatedDate { get; set; }
-    public DateTime? LastLoginDate { get; set; }
-}
-```
-
-### AuthService.cs - 驗證服務
-- 提供登入驗證
-- 密碼 BCrypt 雜湊驗證
-- JWT Token 產生
-
-### UserService.cs - 使用者業務邏輯
-- GetAllUsers() - 取得所有使用者
-- GetUserById(id) - 取得單一使用者
-- CreateUser(user) - 新增使用者
-- UpdateUser(user) - 編輯使用者
-- DeleteUser(id) - 刪除使用者
-
-### Login.razor - 登入頁面
-- 使用者名稱/密碼登入
-- 驗證失敗訊息提示
-- 登入成功後導向主頁
-
----
-
-## 🚀 執行應用
-
-### 方法1：Visual Studio 2022
-1. 開啟方案
-2. 點選 "Start Debugging" (F5)
-3. 應用將在 https://localhost:7xxx 開啟
-
-### 方法2：命令列
-```bash
+```powershell
 dotnet run
 ```
 
-### 測試帳號
+### 4. 登入
+
+| 帳號 | 密碼 |
+|------|------|
+| admin | admin123 |
+| user1 | admin123 |
+| user2 | admin123 |
+
+> 正式環境請刪除或修改測試帳號。
+
+## 目錄結構
+
 ```
-使用者名稱: admin
-密碼: admin123
-
-使用者名稱: user1
-密碼: admin123
+├─ Data/
+│  ├─ User.cs                  使用者實體、查詢條件、表單模型
+│  ├─ ApplicationDbContext.cs  EF Core 資料庫上下文
+│  └─ CreateDatabase.sql       建立資料庫腳本（含測試帳號）
+├─ Services/
+│  ├─ AuthService.cs           登入驗證、BCrypt 密碼加密
+│  └─ UserService.cs           使用者查詢、新增、修改、刪除
+├─ Pages/
+│  ├─ Shared/_Layout.cshtml    系統版面（頁首、麵包屑、左側選單）
+│  ├─ Shared/_LoginLayout.cshtml  登入頁版面（無選單）
+│  ├─ Account/Login、Logout    登入／登出
+│  ├─ Users/Index              使用者查詢
+│  ├─ Users/Edit               使用者新增／編輯
+│  ├─ Index                    首頁
+│  └─ Error                    錯誤頁
+├─ wwwroot/css/site.css        版面樣式
+├─ Program.cs                  啟動設定、服務註冊
+├─ appsettings.sample.json     設定檔範本（不含帳密）
+└─ BlazorUserManagement.csproj
 ```
 
----
+## 自訂
 
-## 💡 教學重點
+- **公司名稱／Logo**：`Pages/Shared/_Layout.cshtml` 與 `_LoginLayout.cshtml` 中的 `公司名稱`
+- **配色**：`wwwroot/css/site.css` 開頭的 `:root` 色彩變數
+- **左側選單**：`Pages/Shared/_Layout.cshtml` 的 `<nav class="sys-menu">`
 
-本專案適合作為 EMBA 資訊管理課程的案例研究，涵蓋：
+## 備註
 
-1. **現代 Web 框架** - Blazor Server 的實時互動
-2. **前端 UI 設計** - MudBlazor 元件的使用
-3. **後端架構** - 分層設計 (Data/Services/Components)
-4. **資料庫設計** - 正規化與索引
-5. **安全機制** - 密碼加密、驗證授權
-6. **CRUD 操作** - 完整的資料操作示例
-
----
-
-## 📚 參考資源
-
-- [Blazor 官方文檔](https://learn.microsoft.com/en-us/aspnet/core/blazor)
-- [MudBlazor 元件庫](https://www.mudblazor.com/)
-- [Entity Framework Core](https://learn.microsoft.com/en-us/ef/core/)
-- [BCrypt.Net-Next](https://github.com/BcryptNet/bcrypt.net-next)
-
----
-
-## 🔐 安全建議
-
-### 生產環境
-- ✅ 使用環境變數儲存敏感資訊 (連接字串、JWT Secret)
-- ✅ 實施 HTTPS 強制
-- ✅ 設定 CORS 政策
-- ✅ 實施速率限制 (Rate Limiting)
-- ✅ 記錄稽核日誌
-- ✅ 定期更新依賴套件
-- ✅ 實施 OWASP Top 10 防護
-
-### 密碼政策
-- 最少 8 個字元
-- 包含大小寫字母、數字、特殊符號
-- 不允許重複使用最近 5 個密碼
-
----
-
-**版本**: 1.0  
-**最後更新**: 2024年10月  
-**適用**: .NET 8, SQL Server 2016+, VS 2022
+- 專案名稱 `BlazorUserManagement` 沿用自原始範例，目前已改為 Razor Pages，未使用 Blazor。
+- `AuthService` 仍保留產生 JWT 的程式碼，目前登入改用 Cookie，JWT 未被使用。
