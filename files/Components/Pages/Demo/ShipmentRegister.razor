@@ -1,0 +1,217 @@
+@page "/demo/shipment"
+@attribute [Authorize]
+@using System.Globalization
+@using BlazorUserManagement.Models
+@inject BaseNotifier Notifier
+@inject IBaseParameterProvider ParameterProvider
+
+@*
+    範例畫面：寄件登記
+    以底層元件組成完整的輸入畫面，儲存後顯示「登記內容確認」供核對輸入結果
+    資料僅保存在本頁 (重新整理後清除)，不寫入資料庫
+*@
+
+<PageTitle>寄件登記 - 使用者管理系統</PageTitle>
+<SectionContent SectionName="breadcrumb">郵件作業 &gt; 寄件登記（範例畫面）</SectionContent>
+
+<div class="msg msg-info">此為範例畫面，登記資料僅保存在本頁（重新整理後清除），不會寫入資料庫。</div>
+
+<EditForm Model="form" OnValidSubmit="SaveAsync" class="base-keyboard-nav">
+    <DataAnnotationsValidator />
+
+    <div class="section-title">寄件人</div>
+    <div class="base-field-grid">
+        <BaseField Label="姓名" Required="true">
+            <BaseTextBox @bind-Value="form.SenderName" MaxLength="50" AutoNext="false" />
+        </BaseField>
+        <BaseField Label="寄件方式">
+            <BaseRadioGroup @bind-Value="form.SendMethod" Options="sendMethodOptions" />
+        </BaseField>
+        <BaseField Label="手機">
+            <BaseMobile @bind-Value="form.SenderMobile" />
+        </BaseField>
+        <BaseField Label="電話">
+            <BaseTelephone @bind-Value="form.SenderTel" />
+        </BaseField>
+        <BaseField Label="地址" Required="true" ColSpan="2">
+            <BaseAddress @bind-County="form.SenderCounty" @bind-District="form.SenderDistrict"
+                         @bind-ZipCode="form.SenderZipCode" @bind-Detail="form.SenderAddress" />
+        </BaseField>
+    </div>
+
+    <div class="section-title">收件人</div>
+    <div class="base-field-grid">
+        <BaseField Label="姓名" Required="true">
+            <BaseTextBox @bind-Value="form.ReceiverName" MaxLength="50" AutoNext="false" />
+        </BaseField>
+        <BaseField Label="手機" Required="true">
+            <BaseMobile @bind-Value="form.ReceiverMobile" />
+        </BaseField>
+        <BaseField Label="地址" Required="true" ColSpan="2">
+            <BaseAddress @bind-County="form.ReceiverCounty" @bind-District="form.ReceiverDistrict"
+                         @bind-ZipCode="form.ReceiverZipCode" @bind-Detail="form.ReceiverAddress" />
+        </BaseField>
+    </div>
+
+    <div class="section-title">郵件資訊</div>
+    <div class="base-field-grid">
+        <BaseField Label="郵件種類" Required="true">
+            <BaseParameterSelect @bind-Value="form.MailType" SetItem="MAIL_TYPE" />
+        </BaseField>
+        <BaseField Label="付款方式" Required="true">
+            <BaseParameterSelect @bind-Value="form.PayType" SetItem="PAY_TYPE" />
+        </BaseField>
+        <BaseField Label="件數" Required="true">
+            <BaseNumeric @bind-Value="form.Quantity" IntegerDigits="2" Min="1" Width="100px" />
+        </BaseField>
+        <BaseField Label="重量（公斤）" Required="true">
+            <BaseNumeric @bind-Value="form.WeightKg" IntegerDigits="2" DecimalDigits="3" Min="0" Width="120px" Placeholder="例：1.25" />
+        </BaseField>
+        <BaseField Label="保價金額（元）">
+            <BaseNumeric @bind-Value="form.InsuredAmount" IntegerDigits="7" DecimalDigits="0" Min="0" Width="140px" Placeholder="選填" />
+        </BaseField>
+        <BaseField Label="寄件日期" Required="true">
+            <BaseDatePicker @bind-Value="form.ShipDate" Roc="true" Min="DateTime.Today" />
+        </BaseField>
+        <BaseField Label="指定送達期間" ColSpan="2">
+            <BaseDateRange @bind-StartValue="form.DeliveryStart" @bind-EndValue="form.DeliveryEnd" MaxMonths="1" Roc="true" />
+        </BaseField>
+        <BaseField Label="簽收" ColSpan="2">
+            <BaseCheckBox @bind-Value="form.NeedSignature" Label="需收件人簽收" />
+        </BaseField>
+        <BaseField Label="備註" ColSpan="2">
+            <BaseTextArea @bind-Value="form.Remark" MaxLength="200" Rows="2" />
+        </BaseField>
+    </div>
+
+    <div class="base-button-bar">
+        <BaseButton Text="儲存" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Save" ButtonType="ButtonType.Submit" />
+        <BaseButton Text="重設" Icon="BaseIcon.Reset" OnClick="Reset" />
+    </div>
+</EditForm>
+
+@if (confirmation is not null)
+{
+    <div class="section-title">登記內容確認（第 @confirmation.No 筆）</div>
+    <table class="confirm-table">
+        @foreach (var (label, value) in confirmation.Items)
+        {
+            <tr>
+                <th>@label</th>
+                <td>@value</td>
+            </tr>
+        }
+    </table>
+}
+
+<div class="section-title">批次匯入</div>
+<BaseFileUpload Accept=".csv" MaxFileSizeMB="2"
+                TemplateUrl="templates/shipments-sample.csv"
+                Hint="CSV 格式：寄件日期(民國),收件人姓名,收件人手機,收件人地址,件數,重量(公斤)，第一列為標題。任一列有誤時整批不匯入。"
+                OnUpload="ImportAsync" />
+
+<div class="section-title">已登記清單</div>
+<BaseDataGrid Items="records" PageSize="10" ColumnWidths="60px 100px 1fr 120px 2fr 110px 60px 90px 110px 70px">
+    <Columns>
+        <PropertyColumn Property="x => x.No" Title="編號" Align="Align.Center" />
+        <TemplateColumn Title="寄件日期" Align="Align.Center" Context="r">@BaseDateFormat.ToRoc(r.ShipDate)</TemplateColumn>
+        <PropertyColumn Property="x => x.ReceiverName" Title="收件人" />
+        <PropertyColumn Property="x => x.ReceiverMobile" Title="手機" />
+        <PropertyColumn Property="x => x.ReceiverAddress" Title="收件地址" />
+        <PropertyColumn Property="x => x.MailTypeText" Title="郵件種類" />
+        <PropertyColumn Property="x => x.Quantity" Title="件數" Align="Align.End" />
+        <TemplateColumn Title="重量" Align="Align.End" Context="r">@BaseNumberFormat.Format(r.WeightKg, 3)</TemplateColumn>
+        <TemplateColumn Title="保價金額" Align="Align.End" Context="r">@BaseNumberFormat.Format(r.InsuredAmount, 0)</TemplateColumn>
+        <PropertyColumn Property="x => x.Source" Title="來源" Align="Align.Center" />
+    </Columns>
+</BaseDataGrid>
+
+@code {
+    private static readonly BaseOption<string>[] sendMethodOptions =
+    [
+        new("Counter", "臨櫃交寄"),
+        new("Pickup", "到府收件"),
+    ];
+
+    private ShipmentForm form = NewForm();
+    private List<ShipmentRecord> records = [];
+    private Confirmation? confirmation;
+
+    private record Confirmation(int No, List<(string Label, string Value)> Items);
+
+    private static ShipmentForm NewForm() => new() { ShipDate = DateTime.Today };
+
+    private void Reset()
+    {
+        form = NewForm();
+        confirmation = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        var mailTypeText = await GetParameterTextAsync("MAIL_TYPE", form.MailType);
+        var payTypeText = await GetParameterTextAsync("PAY_TYPE", form.PayType);
+        var no = records.Count + 1;
+
+        var receiverAddress = BaseAddress.Format(form.ReceiverCounty, form.ReceiverDistrict, form.ReceiverAddress);
+        records = [.. records, new ShipmentRecord(no, form.ShipDate!.Value, form.ReceiverName!, form.ReceiverMobile!,
+            receiverAddress, mailTypeText, form.Quantity!.Value, form.WeightKg!.Value, form.InsuredAmount, "畫面")];
+
+        // 以「人看得懂」的格式列出實際收到的內容，供核對輸入是否正確
+        confirmation = new Confirmation(no,
+        [
+            ("寄件人", form.SenderName!),
+            ("寄件方式", sendMethodOptions.First(o => o.Value == form.SendMethod).Text),
+            ("寄件人手機", form.SenderMobile ?? "（未填）"),
+            ("寄件人電話", form.SenderTel ?? "（未填）"),
+            ("寄件人地址", $"{form.SenderZipCode} {BaseAddress.Format(form.SenderCounty, form.SenderDistrict, form.SenderAddress)}"),
+            ("收件人", form.ReceiverName!),
+            ("收件人手機", form.ReceiverMobile!),
+            ("收件人地址", $"{form.ReceiverZipCode} {receiverAddress}"),
+            ("郵件種類", mailTypeText),
+            ("付款方式", payTypeText),
+            ("件數", $"{form.Quantity} 件"),
+            ("重量", $"{BaseNumberFormat.Format(form.WeightKg, 3)} 公斤"),
+            ("保價金額", form.InsuredAmount is null ? "（未保價）" : $"NT$ {BaseNumberFormat.Format(form.InsuredAmount, 0)}"),
+            ("寄件日期", $"{BaseDateFormat.ToRoc(form.ShipDate)}（西元 {form.ShipDate:yyyy/MM/dd}）"),
+            ("指定送達期間", form.DeliveryStart is null && form.DeliveryEnd is null
+                ? "（未指定）"
+                : $"{BaseDateFormat.ToRoc(form.DeliveryStart)} ～ {BaseDateFormat.ToRoc(form.DeliveryEnd)}"),
+            ("簽收", form.NeedSignature ? "需簽收" : "不需簽收"),
+            ("備註", string.IsNullOrWhiteSpace(form.Remark) ? "（無）" : form.Remark),
+        ]);
+
+        Notifier.Success($"第 {no} 筆寄件已登記");
+        form = NewForm();
+    }
+
+    private async Task<BaseUploadResult> ImportAsync(IReadOnlyList<BaseUploadFile> files)
+    {
+        var messages = new List<string>();
+        var imported = new List<ShipmentRecord>();
+        var mailTypeText = await GetParameterTextAsync("MAIL_TYPE", "1");
+
+        foreach (var file in files)
+        {
+            var (rows, errors) = ShipmentCsvParser.Parse(file.Content, DateTime.Today);
+            if (errors.Count > 0)
+            {
+                // 任一列有誤時整批不匯入，避免部分匯入造成資料不一致
+                return BaseUploadResult.Fail([$"{file.Name} 有 {errors.Count} 個錯誤，整批未匯入：", .. errors]);
+            }
+
+            imported.AddRange(rows.Select((r, i) => new ShipmentRecord(records.Count + imported.Count + i + 1,
+                r.ShipDate, r.ReceiverName, r.ReceiverMobile, r.ReceiverAddress, mailTypeText, r.Quantity, r.WeightKg, null, "匯入")));
+            messages.Add($"{file.Name}：匯入 {rows.Count} 筆");
+        }
+
+        records = [.. records, .. imported];
+        return BaseUploadResult.Ok([.. messages, $"共匯入 {imported.Count} 筆（郵件種類預設為普通包裹）"]);
+    }
+
+    private async Task<string> GetParameterTextAsync(string setItem, string? code)
+    {
+        var options = await ParameterProvider.GetOptionsAsync(setItem);
+        return options.FirstOrDefault(o => o.Value == code)?.Text ?? code ?? string.Empty;
+    }
+}

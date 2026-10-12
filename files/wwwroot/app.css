@@ -233,6 +233,34 @@ a:hover {
     color: var(--danger);
 }
 
+.msg-info {
+    background: #eef5fb;
+    border-color: #9cc3e5;
+    color: #1f4e79;
+}
+
+/* ========== 登記內容確認 ========== */
+.confirm-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+
+.confirm-table th,
+.confirm-table td {
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    text-align: left;
+}
+
+.confirm-table th {
+    width: 140px;
+    background: var(--green-pale);
+    font-weight: normal;
+    white-space: nowrap;
+}
+
 /* ========== 底層元件展示頁 ========== */
 .gallery-buttons {
     display: flex;

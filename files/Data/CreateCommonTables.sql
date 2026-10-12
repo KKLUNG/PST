@@ -32,7 +32,11 @@ FROM (VALUES
     (N'PAY_TYPE', N'1', N'現金',       1, 0),
     (N'PAY_TYPE', N'2', N'信用卡',     2, 0),
     (N'PAY_TYPE', N'3', N'轉帳',       3, 0),
-    (N'PAY_TYPE', N'4', N'郵政劃撥',   4, 0)
+    (N'PAY_TYPE', N'4', N'郵政劃撥',   4, 0),
+    (N'MAIL_TYPE', N'1', N'普通包裹',   1, 0),
+    (N'MAIL_TYPE', N'2', N'快捷郵件',   2, 0),
+    (N'MAIL_TYPE', N'3', N'掛號郵件',   3, 0),
+    (N'MAIL_TYPE', N'4', N'便利包',     4, 0)
 ) AS v (SetItem, SetType, SetValue, SortOrder, IsDeleted)
 WHERE NOT EXISTS (
     SELECT 1 FROM [dbo].[Parameters] p WHERE p.SetItem = v.SetItem AND p.SetType = v.SetType
