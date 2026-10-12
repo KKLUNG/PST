@@ -5,6 +5,7 @@
 -- ============================================
 
 -- 1. 建立資料庫
+-- ※ 注意：若伺服器上已有同名資料庫，會先刪除再重建（資料會全部消失）
 IF EXISTS (SELECT * FROM sys.databases WHERE name = 'BlazorUserManagement')
 BEGIN
     ALTER DATABASE BlazorUserManagement SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -45,9 +46,11 @@ CHECK (Email LIKE '%@%.%');
 INSERT INTO [dbo].[Users] 
     ([Username], [Email], [PasswordHash], [FullName], [IsActive], [CreatedDate], [LastLoginDate])
 VALUES 
-    ('admin', 'admin@company.com', '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36XQuvKm', '系統管理員', 1, GETDATE(), GETDATE()),
-    ('user1', 'user1@company.com', '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36XQuvKm', '李使用者', 1, GETDATE(), NULL),
-    ('user2', 'user2@company.com', '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36XQuvKm', '王使用者', 1, GETDATE(), NULL);
+    ('admin', 'admin@company.com', '$2a$11$aC.OdDM52jzAE2yLZSaI3OzRQy7TMBJwDU7ul6PluuKre6Nn4w0ca', N'系統管理員', 1, GETDATE(), GETDATE()),
+    ('user1', 'user1@company.com', '$2a$11$aC.OdDM52jzAE2yLZSaI3OzRQy7TMBJwDU7ul6PluuKre6Nn4w0ca', N'李使用者', 1, GETDATE(), NULL),
+    ('user2', 'user2@company.com', '$2a$11$aC.OdDM52jzAE2yLZSaI3OzRQy7TMBJwDU7ul6PluuKre6Nn4w0ca', N'王使用者', 1, GETDATE(), NULL);
+
+GO
 
 -- 6. 建立檢視表 - 使用者統計
 CREATE VIEW [dbo].[vw_UserStatistics] AS
@@ -58,6 +61,8 @@ SELECT
     COUNT(DISTINCT CONVERT(DATE, [CreatedDate])) AS [DaysWithNewUsers],
     MAX([CreatedDate]) AS [LatestUserCreated]
 FROM [dbo].[Users];
+
+GO
 
 -- 7. 建立預存程序 - 取得使用者總數
 CREATE PROCEDURE [sp_GetUserCount]
@@ -72,6 +77,8 @@ BEGIN
         SELECT COUNT(*) AS UserCount FROM [dbo].[Users];
 END;
 
+GO
+
 -- 8. 建立預存程序 - 更新使用者最後登入時間
 CREATE PROCEDURE [sp_UpdateLastLogin]
     @UserId INT
@@ -84,6 +91,8 @@ BEGIN
     WHERE [UserId] = @UserId;
 END;
 
+GO
+
 -- 9. 設定權限 (選用)
 -- 建立應用程式專用帳號並設定權限
 /*
@@ -93,6 +102,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON [dbo].[Users] TO [BlazorAppUser];
 GRANT EXECUTE ON [sp_GetUserCount] TO [BlazorAppUser];
 GRANT EXECUTE ON [sp_UpdateLastLogin] TO [BlazorAppUser];
 */
+
+GO
 
 -- 10. 驗證資料
 PRINT '========== 資料庫建立完成 =========='
