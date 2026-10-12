@@ -1,0 +1,157 @@
+@*
+    檔案上傳 (批次匯入)：選擇或拖曳檔案 → 匯入(I) → 顯示處理結果
+    - Accept：允許的副檔名，以逗號分隔，例如 ".xlsx,.csv"
+    - MaxFileSizeMB：單檔大小上限 (預設 10 MB)
+    - TemplateUrl：範本檔網址，設定後顯示「下載範本」連結
+    - OnUpload：按下匯入時呼叫，回傳處理結果 (成功／失敗與訊息)
+    用法：
+    <BaseFileUpload Accept=".csv" TemplateUrl="templates/users.csv" OnUpload="ImportAsync" />
+*@
+<div class="base-upload">
+    @if (!string.IsNullOrWhiteSpace(Hint))
+    {
+        <div class="base-upload-hint">@Hint</div>
+    }
+
+    <div class="base-upload-drop @(dragOver ? "drag-over" : "")"
+         @ondragenter="@(() => dragOver = true)"
+         @ondragleave="@(() => dragOver = false)"
+         @ondrop="@(() => dragOver = false)">
+        <InputFile OnChange="@OnFilesSelectedAsync" multiple="@Multiple" accept="@Accept" disabled="@(Disabled || uploading)" />
+        <div class="base-upload-drop-text">
+            <strong>點此選擇檔案</strong>，或將檔案拖曳到這裡
+            <div class="base-hint">
+                @(string.IsNullOrWhiteSpace(Accept) ? "" : $"允許格式：{Accept}，")單檔上限 @MaxFileSizeMB MB@(Multiple ? "，可選擇多個檔案" : "")
+            </div>
+        </div>
+    </div>
+
+    @if (files.Count > 0 || fileErrors.Count > 0)
+    {
+        <ul class="base-upload-files">
+            @foreach (var file in files)
+            {
+                <li>📄 @file.Name <span class="base-hint">(@FormatSize(file.Size))</span></li>
+            }
+            @foreach (var error in fileErrors)
+            {
+                <li class="base-upload-error">✖ @error</li>
+            }
+        </ul>
+    }
+
+    <div class="base-upload-actions">
+        <BaseButton Text="@UploadText" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Upload"
+                    Disabled="@(Disabled || files.Count == 0)" OnClick="UploadAsync" />
+        @if (!string.IsNullOrWhiteSpace(TemplateUrl))
+        {
+            <a class="base-upload-template" href="@TemplateUrl" download>⬇ 下載範本</a>
+        }
+    </div>
+
+    @if (result is not null)
+    {
+        <div class="base-upload-result @(result.Success ? "success" : "error")">
+            @foreach (var message in result.Messages)
+            {
+                <div>@message</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>允許的副檔名，以逗號分隔，例如 ".xlsx,.csv"；未設定則不限制</summary>
+    [Parameter] public string? Accept { get; set; }
+
+    [Parameter] public bool Multiple { get; set; }
+
+    /// <summary>單檔大小上限 (MB)</summary>
+    [Parameter] public int MaxFileSizeMB { get; set; } = 10;
+
+    /// <summary>範本檔網址，例如 "templates/users.csv"</summary>
+    [Parameter] public string? TemplateUrl { get; set; }
+
+    /// <summary>提示文字 (顯示在上傳區上方)</summary>
+    [Parameter] public string? Hint { get; set; }
+
+    [Parameter] public string UploadText { get; set; } = "匯入";
+
+    /// <summary>按下匯入時呼叫，回傳處理結果</summary>
+    [Parameter, EditorRequired] public Func<IReadOnlyList<BaseUploadFile>, Task<BaseUploadResult>> OnUpload { get; set; } = default!;
+
+    [Parameter] public bool Disabled { get; set; }
+
+    private readonly List<BaseUploadFile> files = [];
+    private readonly List<string> fileErrors = [];
+    private BaseUploadResult? result;
+    private bool uploading;
+    private bool dragOver;
+
+    private async Task OnFilesSelectedAsync(InputFileChangeEventArgs e)
+    {
+        files.Clear();
+        fileErrors.Clear();
+        result = null;
+
+        var allowed = (Accept ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => x.ToLowerInvariant())
+            .ToHashSet();
+        var maxBytes = MaxFileSizeMB * 1024L * 1024L;
+        var selected = Multiple ? e.GetMultipleFiles(100) : [e.File];
+
+        foreach (var file in selected)
+        {
+            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+            if (allowed.Count > 0 && !allowed.Contains(extension))
+            {
+                fileErrors.Add($"{file.Name}：檔案格式不符，僅允許 {Accept}");
+                continue;
+            }
+
+            if (file.Size > maxBytes)
+            {
+                fileErrors.Add($"{file.Name}：檔案過大 ({FormatSize(file.Size)})，上限 {MaxFileSizeMB} MB");
+                continue;
+            }
+
+            using var stream = new MemoryStream();
+            await file.OpenReadStream(maxBytes).CopyToAsync(stream);
+            files.Add(new BaseUploadFile(file.Name, file.Size, stream.ToArray()));
+        }
+    }
+
+    private async Task UploadAsync()
+    {
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        uploading = true;
+        try
+        {
+            result = await OnUpload(files.ToList());
+            if (result.Success)
+            {
+                files.Clear();
+            }
+        }
+        catch (Exception ex)
+        {
+            result = BaseUploadResult.Fail($"匯入失敗：{ex.Message}");
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    private static string FormatSize(long bytes) => bytes switch
+    {
+        >= 1024 * 1024 => $"{bytes / 1024d / 1024d:0.0} MB",
+        >= 1024 => $"{bytes / 1024d:0.0} KB",
+        _ => $"{bytes} B",
+    };
+}

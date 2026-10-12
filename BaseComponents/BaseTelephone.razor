@@ -1,0 +1,114 @@
+@*
+    市話：區碼 － 號碼 # 分機，只能輸入數字；號碼滿 8 碼自動跳到分機
+    - 綁定值格式：02-23456789#123 (無分機時為 02-23456789)
+    - ShowExtension：是否顯示分機欄位 (預設顯示)
+    - 格式檢查請在資料模型加上 [BaseTelephone]
+    用法：<BaseTelephone @bind-Value="model.Tel" />
+*@
+<div class="base-input-wrap base-phone">
+    <div class="base-phone-parts">
+        <FluentTextField Value="@area" ValueChanged="@OnAreaChanged" Maxlength="4" Placeholder="區碼"
+                         Immediate="true" ReadOnly="@ReadOnly" Disabled="@Disabled" AutoComplete="off"
+                         Class="base-input base-phone-part" Style="width: 64px"
+                         AdditionalAttributes="@DigitsOnly" />
+        <span class="base-phone-sep">－</span>
+        <FluentTextField Value="@number" ValueChanged="@OnNumberChanged" Maxlength="8" Placeholder="號碼"
+                         Immediate="true" ReadOnly="@ReadOnly" Disabled="@Disabled" AutoComplete="off"
+                         Class="base-input base-phone-part" Style="width: 110px"
+                         AdditionalAttributes="@(ShowExtension ? DigitsAutoNext : DigitsOnly)" />
+        @if (ShowExtension)
+        {
+            <span class="base-phone-sep">#</span>
+            <FluentTextField Value="@extension" ValueChanged="@OnExtensionChanged" Maxlength="6" Placeholder="分機"
+                             Immediate="true" ReadOnly="@ReadOnly" Disabled="@Disabled" AutoComplete="off"
+                             Class="base-input base-phone-part" Style="width: 80px"
+                             AdditionalAttributes="@DigitsOnly" />
+        }
+    </div>
+    @if (ShowValidation)
+    {
+        <FluentValidationMessage For="@ValueExpression" Class="base-validation-message" />
+    }
+</div>
+
+@code {
+    // 區碼長度不固定 (2-4 碼)，不自動跳欄；號碼滿 8 碼時跳到分機
+    private static readonly Dictionary<string, object> DigitsOnly = new() { ["data-digits-only"] = "true" };
+    private static readonly Dictionary<string, object> DigitsAutoNext = new() { ["data-digits-only"] = "true", ["data-auto-next"] = "true" };
+
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    /// <summary>是否顯示分機欄位</summary>
+    [Parameter] public bool ShowExtension { get; set; } = true;
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    private string? area;
+    private string? number;
+    private string? extension;
+    private string? lastValue;
+
+    private bool ShowValidation => EditContext is not null && ValueExpression is not null;
+
+    protected override void OnParametersSet()
+    {
+        // 外部設定新值時拆成區碼、號碼、分機
+        if (Value != lastValue)
+        {
+            lastValue = Value;
+            var mainAndExt = (Value ?? string.Empty).Split('#', 2);
+            var parts = mainAndExt[0].Split('-', 2);
+            area = parts[0];
+            number = parts.Length > 1 ? parts[1] : null;
+            extension = mainAndExt.Length > 1 ? mainAndExt[1] : null;
+        }
+    }
+
+    private Task OnAreaChanged(string? value)
+    {
+        area = value;
+        return UpdateValueAsync();
+    }
+
+    private Task OnNumberChanged(string? value)
+    {
+        number = value;
+        return UpdateValueAsync();
+    }
+
+    private Task OnExtensionChanged(string? value)
+    {
+        extension = value;
+        return UpdateValueAsync();
+    }
+
+    private async Task UpdateValueAsync()
+    {
+        if (string.IsNullOrEmpty(area) && string.IsNullOrEmpty(number) && string.IsNullOrEmpty(extension))
+        {
+            lastValue = null;
+        }
+        else
+        {
+            lastValue = $"{area}-{number}";
+            if (ShowExtension && !string.IsNullOrEmpty(extension))
+            {
+                lastValue += $"#{extension}";
+            }
+        }
+
+        await ValueChanged.InvokeAsync(lastValue);
+        if (ShowValidation)
+        {
+            EditContext!.NotifyFieldChanged(FieldIdentifier.Create(ValueExpression!));
+        }
+    }
+}

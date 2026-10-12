@@ -1,0 +1,83 @@
+@*
+    手機號碼：09XX － XXXXXX，只能輸入數字，前段滿 4 碼自動跳到後段
+    - 綁定值格式：0912-345678
+    - 格式檢查請在資料模型加上 [BaseMobile]
+    用法：<BaseMobile @bind-Value="model.Mobile" />
+*@
+<div class="base-input-wrap base-phone">
+    <div class="base-phone-parts">
+        <FluentTextField Value="@prefix" ValueChanged="@OnPrefixChanged" Maxlength="4" Placeholder="09XX"
+                         Immediate="true" ReadOnly="@ReadOnly" Disabled="@Disabled" AutoComplete="off"
+                         Class="base-input base-phone-part" Style="width: 76px"
+                         AdditionalAttributes="@PartAttributes" />
+        <span class="base-phone-sep">－</span>
+        <FluentTextField Value="@number" ValueChanged="@OnNumberChanged" Maxlength="6" Placeholder="XXXXXX"
+                         Immediate="true" ReadOnly="@ReadOnly" Disabled="@Disabled" AutoComplete="off"
+                         Class="base-input base-phone-part" Style="width: 100px"
+                         AdditionalAttributes="@PartAttributes" />
+    </div>
+    @if (ShowValidation)
+    {
+        <FluentValidationMessage For="@ValueExpression" Class="base-validation-message" />
+    }
+</div>
+
+@code {
+    private static readonly Dictionary<string, object> PartAttributes = new()
+    {
+        ["data-digits-only"] = "true",
+        ["data-auto-next"] = "true",
+    };
+
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    private string? prefix;
+    private string? number;
+    private string? lastValue;
+
+    private bool ShowValidation => EditContext is not null && ValueExpression is not null;
+
+    protected override void OnParametersSet()
+    {
+        // 外部設定新值時拆成兩段
+        if (Value != lastValue)
+        {
+            lastValue = Value;
+            var parts = (Value ?? string.Empty).Split('-', 2);
+            prefix = parts[0];
+            number = parts.Length > 1 ? parts[1] : null;
+        }
+    }
+
+    private Task OnPrefixChanged(string? value)
+    {
+        prefix = value;
+        return UpdateValueAsync();
+    }
+
+    private Task OnNumberChanged(string? value)
+    {
+        number = value;
+        return UpdateValueAsync();
+    }
+
+    private async Task UpdateValueAsync()
+    {
+        lastValue = string.IsNullOrEmpty(prefix) && string.IsNullOrEmpty(number) ? null : $"{prefix}-{number}";
+        await ValueChanged.InvokeAsync(lastValue);
+        if (ShowValidation)
+        {
+            EditContext!.NotifyFieldChanged(FieldIdentifier.Create(ValueExpression!));
+        }
+    }
+}

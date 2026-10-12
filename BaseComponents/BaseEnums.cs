@@ -44,5 +44,7 @@ namespace BaseComponents
         Print,
         Export,
         Confirm,
+        Upload,
+        Download,
     }
 }

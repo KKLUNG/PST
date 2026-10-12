@@ -1,0 +1,87 @@
+@inject IServiceProvider Services
+@*
+    參數檔下拉選單：依參數群組 (SetItem) 從參數檔讀取選項
+    - 資料來源由系統實作 IBaseParameterProvider 提供 (底層元件不直接存取資料庫)
+    - ShowCode：選項文字前加上代碼，例如「A - 台北郵局」(預設開啟)
+    - Exclude / Filter：排除特定代碼或自訂篩選
+    用法：<BaseParameterSelect @bind-Value="model.PayType" SetItem="PAY_TYPE" />
+*@
+@if (loadError is not null)
+{
+    <span class="base-validation-message">@loadError</span>
+}
+else
+{
+    <BaseSelect TValue="string"
+                Value="@Value"
+                ValueChanged="@ValueChanged"
+                ValueExpression="@ValueExpression"
+                Options="@options"
+                AllText="@AllText"
+                Placeholder="@Placeholder"
+                Disabled="@Disabled"
+                ReadOnly="@ReadOnly"
+                Width="@Width"
+                Class="@Class" />
+}
+
+@code {
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    /// <summary>參數群組代碼，例如 "UNIT"</summary>
+    [Parameter, EditorRequired] public string SetItem { get; set; } = string.Empty;
+
+    /// <summary>選項文字前加上代碼 (例如「A - 台北郵局」)</summary>
+    [Parameter] public bool ShowCode { get; set; } = true;
+
+    /// <summary>要排除的代碼</summary>
+    [Parameter] public IEnumerable<string>? Exclude { get; set; }
+
+    /// <summary>自訂篩選，回傳 true 的選項才顯示</summary>
+    [Parameter] public Func<BaseOption<string>, bool>? Filter { get; set; }
+
+    /// <summary>「全部」選項文字 (查詢條件用)，未設定則不顯示</summary>
+    [Parameter] public string? AllText { get; set; }
+
+    [Parameter] public string? Placeholder { get; set; } = "－ 請選擇 －";
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public string? Width { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    private IReadOnlyList<BaseOption<string>> allOptions = [];
+    private List<BaseOption<string>> options = [];
+    private string? loadedSetItem;
+    private string? loadError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedSetItem != SetItem)
+        {
+            loadedSetItem = SetItem;
+            var provider = Services.GetService<IBaseParameterProvider>();
+            if (provider is null)
+            {
+                loadError = "尚未註冊 IBaseParameterProvider，無法讀取參數檔";
+                return;
+            }
+
+            allOptions = await provider.GetOptionsAsync(SetItem);
+            loadError = null;
+        }
+
+        var exclude = Exclude?.ToHashSet() ?? [];
+        options = allOptions
+            .Where(o => !exclude.Contains(o.Value) && (Filter is null || Filter(o)))
+            .Select(o => ShowCode ? o with { Text = $"{o.Value} - {o.Text}" } : o)
+            .ToList();
+    }
+}

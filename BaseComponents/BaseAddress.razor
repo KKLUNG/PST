@@ -1,0 +1,132 @@
+@inject IServiceProvider Services
+@*
+    地址：縣市 → 鄉鎮市區 (自動帶出郵遞區號) + 詳細地址
+    - 資料來源由系統實作 IBaseAddressProvider 提供
+    - 可分別綁定縣市、鄉鎮市區、郵遞區號、詳細地址；FullAddress 為組合後的完整地址 (唯讀輸出)
+    - 驗證 (例如 [Required]) 請加在詳細地址欄位
+    用法：
+    <BaseAddress @bind-County="model.County" @bind-District="model.District"
+                 @bind-ZipCode="model.ZipCode" @bind-Detail="model.AddressDetail" />
+*@
+<div class="base-address">
+    @if (loadError is not null)
+    {
+        <span class="base-validation-message">@loadError</span>
+    }
+    else
+    {
+        <div class="base-address-row">
+            <BaseSelect TValue="string" Value="@County" ValueChanged="@OnCountyChanged"
+                        Options="@countyOptions" Placeholder="縣市" Width="120px"
+                        Disabled="@Disabled" ReadOnly="@ReadOnly" />
+            <BaseSelect TValue="string" Value="@District" ValueChanged="@OnDistrictChanged"
+                        Options="@districtOptions" Placeholder="鄉鎮市區" Width="140px"
+                        Disabled="@(Disabled || string.IsNullOrEmpty(County))" ReadOnly="@ReadOnly" />
+            @if (!string.IsNullOrEmpty(ZipCode))
+            {
+                <span class="base-address-zip" title="郵遞區號">〒 @ZipCode</span>
+            }
+        </div>
+        <BaseTextBox Value="@Detail" ValueChanged="@OnDetailChanged" ValueExpression="@DetailExpression"
+                     Placeholder="路街名、巷、弄、號、樓" MaxLength="@DetailMaxLength" AutoNext="false"
+                     Width="100%" Disabled="@Disabled" ReadOnly="@ReadOnly" />
+    }
+</div>
+
+@code {
+    [Parameter] public string? County { get; set; }
+
+    [Parameter] public EventCallback<string?> CountyChanged { get; set; }
+
+    [Parameter] public string? District { get; set; }
+
+    [Parameter] public EventCallback<string?> DistrictChanged { get; set; }
+
+    /// <summary>郵遞區號 (選取鄉鎮市區後自動帶入)</summary>
+    [Parameter] public string? ZipCode { get; set; }
+
+    [Parameter] public EventCallback<string?> ZipCodeChanged { get; set; }
+
+    /// <summary>詳細地址 (路街名、巷、弄、號、樓)</summary>
+    [Parameter] public string? Detail { get; set; }
+
+    [Parameter] public EventCallback<string?> DetailChanged { get; set; }
+
+    [Parameter] public Expression<Func<string?>>? DetailExpression { get; set; }
+
+    /// <summary>完整地址 (縣市 + 鄉鎮市區 + 詳細地址)，任一部分變更時通知</summary>
+    [Parameter] public EventCallback<string> FullAddressChanged { get; set; }
+
+    [Parameter] public int DetailMaxLength { get; set; } = 200;
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    private IBaseAddressProvider? provider;
+    private List<BaseOption<string?>> countyOptions = [];
+    private List<BaseOption<string?>> districtOptions = [];
+    private IReadOnlyList<BaseAddressArea> districts = [];
+    private string? loadedCounty;
+    private string? loadError;
+
+    /// <summary>組合完整地址</summary>
+    public static string Format(string? county, string? district, string? detail) =>
+        $"{county}{district}{detail}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        provider = Services.GetService<IBaseAddressProvider>();
+        if (provider is null)
+        {
+            loadError = "尚未註冊 IBaseAddressProvider，無法讀取地址資料";
+            return;
+        }
+
+        var counties = await provider.GetCountiesAsync();
+        countyOptions = counties.Select(c => new BaseOption<string?>(c, c)).ToList();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // 縣市變更 (含外部設定初始值) 時重新載入鄉鎮市區
+        if (provider is not null && County != loadedCounty)
+        {
+            loadedCounty = County;
+            districts = string.IsNullOrEmpty(County) ? [] : await provider.GetDistrictsAsync(County);
+            districtOptions = districts.Select(d => new BaseOption<string?>(d.District, d.District)).ToList();
+        }
+    }
+
+    private async Task OnCountyChanged(string? value)
+    {
+        County = value;
+        await CountyChanged.InvokeAsync(value);
+
+        // 縣市變更：清空鄉鎮市區與郵遞區號
+        District = null;
+        ZipCode = null;
+        await DistrictChanged.InvokeAsync(null);
+        await ZipCodeChanged.InvokeAsync(null);
+        await OnParametersSetAsync();
+        await NotifyFullAddressAsync();
+    }
+
+    private async Task OnDistrictChanged(string? value)
+    {
+        District = value;
+        ZipCode = districts.FirstOrDefault(d => d.District == value)?.ZipCode;
+        await DistrictChanged.InvokeAsync(value);
+        await ZipCodeChanged.InvokeAsync(ZipCode);
+        await NotifyFullAddressAsync();
+    }
+
+    private async Task OnDetailChanged(string? value)
+    {
+        Detail = value;
+        await DetailChanged.InvokeAsync(value);
+        await NotifyFullAddressAsync();
+    }
+
+    private Task NotifyFullAddressAsync() => FullAddressChanged.InvokeAsync(Format(County, District, Detail));
+}

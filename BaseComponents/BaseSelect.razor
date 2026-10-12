@@ -12,7 +12,7 @@
                   OptionValue="@(o => items.IndexOf(o).ToString())"
                   SelectedOption="@selected"
                   SelectedOptionChanged="@OnSelectedChanged"
-                  Placeholder="@Placeholder"
+                  Placeholder="@(AllText is null ? Placeholder : null)"
                   Disabled="@(Disabled || ReadOnly)"
                   Height="300px"
                   Class="@($"base-input base-select {Class}".Trim())" />

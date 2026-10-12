@@ -84,6 +84,143 @@ fluent-text-field[data-uppercase]::part(control) {
     margin-top: 2px;
 }
 
+.base-hint {
+    color: #666;
+    font-size: 12px;
+}
+
+/* ========== 起訖日期 ========== */
+.base-date-range {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.base-date-range-inputs {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.base-date-range-sep {
+    line-height: 32px;
+    color: #555;
+}
+
+/* ========== 電話、手機 ========== */
+.base-phone {
+    width: auto;
+}
+
+.base-phone-parts {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.base-phone-sep {
+    color: #555;
+}
+
+/* ========== 地址 ========== */
+.base-address {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.base-address-row {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.base-address-zip {
+    line-height: 32px;
+    padding: 0 8px;
+    background: var(--base-label-bg);
+    border: 1px solid var(--base-border);
+    border-radius: 2px;
+    font-weight: bold;
+}
+
+/* ========== 檔案上傳 ========== */
+.base-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.base-upload-hint {
+    color: var(--base-danger);
+}
+
+.base-upload-drop {
+    position: relative;
+    border: 2px dashed var(--base-border);
+    background: #fafdf6;
+    padding: 14px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.base-upload-drop:hover,
+.base-upload-drop.drag-over {
+    border-color: var(--base-green-main);
+    background: var(--base-label-bg);
+}
+
+/* 檔案選擇框覆蓋整個區塊，可點擊或拖曳放入 */
+.base-upload-drop input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.base-upload-files {
+    margin: 0;
+    padding-left: 4px;
+    list-style: none;
+}
+
+.base-upload-error {
+    color: var(--base-danger);
+}
+
+.base-upload-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.base-upload-template {
+    color: #1a4fa0;
+}
+
+.base-upload-result {
+    padding: 6px 10px;
+    border: 1px solid;
+}
+
+.base-upload-result.success {
+    background: #eaf7e1;
+    border-color: #8cc56b;
+    color: #2d6a12;
+}
+
+.base-upload-result.error {
+    background: #fdecea;
+    border-color: #e5a29b;
+    color: var(--base-danger);
+}
+
 /* ========== 按鈕 ========== */
 .base-button-bar {
     display: flex;

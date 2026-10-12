@@ -1,0 +1,153 @@
+@implements IDisposable
+@*
+    起訖日期區間：起日 ～ 迄日
+    - 檢查「起日不可大於迄日」；設定 MaxMonths 時檢查區間長度 (例如查詢最多 3 個月)
+    - 在表單 (EditForm) 中：錯誤會阻擋送出，並顯示在迄日下方
+    - 在查詢區 (非表單) 中：查詢前呼叫 Validate() 取得是否通過
+    用法：<BaseDateRange @bind-StartValue="query.StartDate" @bind-EndValue="query.EndDate" MaxMonths="3" Roc="true" />
+*@
+<div class="base-date-range">
+    <div class="base-date-range-inputs">
+        <BaseDatePicker Value="@StartValue"
+                        ValueChanged="@OnStartChanged"
+                        ValueExpression="@StartValueExpression"
+                        Roc="@Roc"
+                        Min="@Min"
+                        Max="@Max"
+                        ReadOnly="@ReadOnly"
+                        Disabled="@Disabled"
+                        Placeholder="@StartPlaceholder" />
+        <span class="base-date-range-sep">～</span>
+        <BaseDatePicker Value="@EndValue"
+                        ValueChanged="@OnEndChanged"
+                        ValueExpression="@EndValueExpression"
+                        Roc="@Roc"
+                        Min="@Min"
+                        Max="@Max"
+                        ReadOnly="@ReadOnly"
+                        Disabled="@Disabled"
+                        Placeholder="@EndPlaceholder" />
+    </div>
+    @if (rangeError is not null && !InForm)
+    {
+        <span class="base-validation-message">@rangeError</span>
+    }
+    @if (MaxMonths > 0)
+    {
+        <span class="base-hint">每次查詢區間最長為 @MaxMonths 個月</span>
+    }
+</div>
+
+@code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    [Parameter] public DateTime? StartValue { get; set; }
+
+    [Parameter] public EventCallback<DateTime?> StartValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<DateTime?>>? StartValueExpression { get; set; }
+
+    [Parameter] public DateTime? EndValue { get; set; }
+
+    [Parameter] public EventCallback<DateTime?> EndValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<DateTime?>>? EndValueExpression { get; set; }
+
+    /// <summary>區間最長月數，0 表示不限制</summary>
+    [Parameter] public int MaxMonths { get; set; }
+
+    /// <summary>以民國年顯示與輸入</summary>
+    [Parameter] public bool Roc { get; set; }
+
+    [Parameter] public DateTime? Min { get; set; }
+
+    [Parameter] public DateTime? Max { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public string? StartPlaceholder { get; set; } = "起日";
+
+    [Parameter] public string? EndPlaceholder { get; set; } = "迄日";
+
+    private ValidationMessageStore? messageStore;
+    private string? rangeError;
+
+    private bool InForm => EditContext is not null && EndValueExpression is not null;
+
+    protected override void OnInitialized()
+    {
+        if (InForm)
+        {
+            messageStore = new ValidationMessageStore(EditContext!);
+            EditContext!.OnValidationRequested += OnValidationRequested;
+        }
+    }
+
+    /// <summary>
+    /// 檢查區間是否正確 (查詢區使用：查詢前呼叫，回傳 false 時不查詢)
+    /// </summary>
+    public bool Validate()
+    {
+        rangeError = GetRangeError();
+
+        if (messageStore is not null)
+        {
+            var field = FieldIdentifier.Create(EndValueExpression!);
+            messageStore.Clear(field);
+            if (rangeError is not null)
+            {
+                messageStore.Add(field, rangeError);
+            }
+            EditContext!.NotifyValidationStateChanged();
+        }
+
+        StateHasChanged();
+        return rangeError is null;
+    }
+
+    private string? GetRangeError()
+    {
+        if (StartValue is null || EndValue is null)
+        {
+            return null;
+        }
+
+        if (StartValue.Value.Date > EndValue.Value.Date)
+        {
+            return "起日不可大於迄日";
+        }
+
+        if (MaxMonths > 0 && EndValue.Value.Date > StartValue.Value.Date.AddMonths(MaxMonths))
+        {
+            return $"查詢區間最長為 {MaxMonths} 個月，請重新設定";
+        }
+
+        return null;
+    }
+
+    private async Task OnStartChanged(DateTime? value)
+    {
+        StartValue = value;
+        await StartValueChanged.InvokeAsync(value);
+        Validate();
+    }
+
+    private async Task OnEndChanged(DateTime? value)
+    {
+        EndValue = value;
+        await EndValueChanged.InvokeAsync(value);
+        Validate();
+    }
+
+    private void OnValidationRequested(object? sender, ValidationRequestedEventArgs e) => Validate();
+
+    public void Dispose()
+    {
+        if (EditContext is not null && messageStore is not null)
+        {
+            EditContext.OnValidationRequested -= OnValidationRequested;
+        }
+    }
+}

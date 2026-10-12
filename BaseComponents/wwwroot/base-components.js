@@ -88,6 +88,18 @@
         focusNext(container, field);
     }, true);
 
+    // 設定 data-digits-only 的欄位 (電話、手機) 只能輸入數字
+    document.addEventListener('beforeinput', function (e) {
+        const field = e.target;
+        if (!field || !field.hasAttribute || !field.hasAttribute('data-digits-only')) {
+            return;
+        }
+
+        if (e.data && /\D/.test(e.data)) {
+            e.preventDefault();
+        }
+    }, true);
+
     // 輸入滿長度自動跳下一個欄位
     document.addEventListener('input', function (e) {
         const field = e.target;
