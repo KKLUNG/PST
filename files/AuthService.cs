@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
+using BlazorUserManagement.Data;
 using BCrypt.Net;
 
 namespace BlazorUserManagement.Services
