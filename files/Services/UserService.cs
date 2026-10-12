@@ -306,6 +306,48 @@ namespace BlazorUserManagement.Services
         }
 
         /// <summary>
+        /// 依條件查詢使用者 (條件為空時不篩選)
+        /// </summary>
+        public async Task<List<UserDto>> QueryUsersAsync(UserQuery query)
+        {
+            try
+            {
+                var users = _context.Users.AsNoTracking();
+
+                if (!string.IsNullOrWhiteSpace(query.Username))
+                {
+                    users = users.Where(u => u.Username.Contains(query.Username.Trim()));
+                }
+
+                if (!string.IsNullOrWhiteSpace(query.Email))
+                {
+                    users = users.Where(u => u.Email.Contains(query.Email.Trim()));
+                }
+
+                if (!string.IsNullOrWhiteSpace(query.FullName))
+                {
+                    users = users.Where(u => u.FullName != null && u.FullName.Contains(query.FullName.Trim()));
+                }
+
+                if (query.IsActive.HasValue)
+                {
+                    users = users.Where(u => u.IsActive == query.IsActive.Value);
+                }
+
+                var result = await users
+                    .OrderBy(u => u.UserId)
+                    .ToListAsync();
+
+                return result.Select(MapToUserDto).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"查詢使用者失敗: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// 將 User 轉換為 UserDto
         /// </summary>
         private UserDto MapToUserDto(User user)
