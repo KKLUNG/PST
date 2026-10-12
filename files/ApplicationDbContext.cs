@@ -50,50 +50,13 @@ namespace BlazorUserManagement.Data
                 entity.Property(e => e.FullName)
                     .HasMaxLength(100);
 
-                entity.Property(e => e.IsActive)
-                    .HasDefaultValue(true);
-
-                entity.Property(e => e.CreatedDate)
-                    .HasDefaultValue(DateTime.Now)
-                    .ValueGeneratedOnAdd();
+                // 注意：IsActive、CreatedDate 不設定 HasDefaultValue。
+                // bool 欄位若設定資料庫預設值 true，EF Core 在值為 false 時不會送出該欄位，
+                // 導致「新增停用的使用者」存進資料庫後變成啟用。
+                // 預設值已由 C# 屬性初始值與 CreateDatabase.sql 的 DEFAULT 處理。
             });
 
-            // 預設資料 (選用)
-            SeedDefaultData(modelBuilder);
-        }
-
-        /// <summary>
-        /// 植入預設資料
-        /// </summary>
-        private void SeedDefaultData(ModelBuilder modelBuilder)
-        {
-            // 密碼加密範例: admin123 使用 BCrypt 加密後的結果
-            // 實際應用中應在應用程式層進行加密
-            var hashedPassword = "$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36XQuvKm";
-
-            modelBuilder.Entity<User>().HasData(
-                new User
-                {
-                    UserId = 1,
-                    Username = "admin",
-                    Email = "admin@company.com",
-                    PasswordHash = hashedPassword,
-                    FullName = "系統管理員",
-                    IsActive = true,
-                    CreatedDate = DateTime.Now,
-                    LastLoginDate = DateTime.Now
-                },
-                new User
-                {
-                    UserId = 2,
-                    Username = "user1",
-                    Email = "user1@company.com",
-                    PasswordHash = hashedPassword,
-                    FullName = "李使用者",
-                    IsActive = true,
-                    CreatedDate = DateTime.Now
-                }
-            );
+            // 預設資料由 CreateDatabase.sql 建立（本專案不使用 EF Migrations，HasData 不會生效）
         }
     }
 }
