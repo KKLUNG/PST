@@ -33,6 +33,15 @@ sqlcmd -S 伺服器名稱 -U 帳號 -P 密碼 -f 65001 -i Data\CreateDatabase.sq
 
 > ⚠️ 若伺服器上已有名為 `BlazorUserManagement` 的資料庫，腳本會**先刪除再重建**。
 
+再執行 `Data/CreateCommonTables.sql` 建立共用資料表（參數檔 `Parameters`、地址 `AddressAreas`，含範例資料）：
+
+```powershell
+sqlcmd -S 伺服器名稱 -U 帳號 -P 密碼 -d BlazorUserManagement -f 65001 -i Data\CreateCommonTables.sql
+```
+
+> 此腳本**可重複執行**：資料表不存在才建立、資料不存在才新增，不會刪除既有資料。已有資料庫的環境只需執行這一支。
+> 地址範例資料僅含臺北市、新北市、臺中市、高雄市部分行政區，正式使用請匯入中華郵政公布的完整郵遞區號資料。
+
 ### 2. 設定連線字串
 
 `appsettings.json` 含資料庫帳號密碼，**不納入版本控制**。第一次使用時：
@@ -79,9 +88,10 @@ PST/
    │     ├─ Dev/ComponentGallery.razor 底層元件展示
    │     ├─ Home.razor           首頁
    │     └─ Error.razor          錯誤頁
-   ├─ Data/                      實體、DbContext、CreateDatabase.sql
-   ├─ Services/                  AuthService（登入驗證）、UserService（使用者 CRUD）
+   ├─ Data/                      實體、DbContext、CreateDatabase.sql、CreateCommonTables.sql（參數檔、地址）
+   ├─ Services/                  AuthService（登入驗證）、UserService（使用者 CRUD）、CommonDataService（參數檔、地址資料，供底層元件使用）
    ├─ wwwroot/app.css            版面樣式（元件樣式在 BaseComponents）
+   ├─ wwwroot/templates/         匯入範本檔（users-sample.csv）
    ├─ Program.cs                 啟動設定、服務註冊、登出端點
    └─ appsettings.sample.json    設定檔範本（不含帳密）
 ```

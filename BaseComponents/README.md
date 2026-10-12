@@ -68,6 +68,58 @@
 - 皆支援 `@bind-Value`，以及 `ReadOnly`、`Disabled`。
 - 放在 `EditForm`（或 `BaseFormDialog`）內時，DataAnnotations 驗證訊息會**自動顯示在欄位下方**。
 
+### 專用輸入元件
+
+| 元件 | 用途 | 主要參數 |
+|------|------|----------|
+| `BaseParameterSelect` | 參數檔下拉選單（依參數群組讀取選項） | `SetItem`、`ShowCode`（顯示「A - 名稱」）、`Exclude`、`Filter`、`AllText` |
+| `BaseDateRange` | 起訖日期區間 | `@bind-StartValue`、`@bind-EndValue`、`MaxMonths`（區間上限）、`Roc` |
+| `BaseMobile` | 手機（09XX－XXXXXX） | 綁定值 `0912-345678`；模型加 `[BaseMobile]` 檢查格式 |
+| `BaseTelephone` | 市話（區碼－號碼#分機） | 綁定值 `02-23456789#123`；`ShowExtension`；模型加 `[BaseTelephone]` |
+| `BaseAddress` | 地址（縣市→鄉鎮市區→郵遞區號 + 詳細地址） | `@bind-County`、`@bind-District`、`@bind-ZipCode`、`@bind-Detail`、`FullAddressChanged` |
+| `BaseFileUpload` | 檔案上傳（批次匯入） | `Accept`、`Multiple`、`MaxFileSizeMB`、`TemplateUrl`、`OnUpload` |
+
+說明：
+- **起訖日期**：自動檢查「起日不可大於迄日」與區間長度。在表單中錯誤會阻擋送出；在查詢區（非表單）請於查詢前呼叫 `@ref` 的 `Validate()`。
+- **手機、電話**：只能輸入數字，滿長度自動跳到下一段。格式驗證以屬性加在資料模型（空值視為通過，必填另加 `[Required]`）：
+
+  ```csharp
+  [BaseMobile] public string? Mobile { get; set; }
+  [BaseTelephone] public string? Tel { get; set; }
+  ```
+
+- **地址**：驗證（例如 `[Required]`）加在詳細地址欄位；`BaseAddress.Format(縣市, 區, 詳細)` 可組合完整地址。
+- **檔案上傳**：檢查副檔名與大小後才可匯入；`OnUpload` 收到檔案內容，回傳 `BaseUploadResult.Ok(...)` 或 `Fail(...)` 顯示結果：
+
+  ```razor
+  <BaseFileUpload Accept=".csv" TemplateUrl="templates/users.csv" OnUpload="ImportAsync" />
+
+  @code {
+      private async Task<BaseUploadResult> ImportAsync(IReadOnlyList<BaseUploadFile> files)
+      {
+          // files[i].Name、Size、Content (byte[])
+          return BaseUploadResult.Ok($"匯入完成，共 {count} 筆");
+      }
+  }
+  ```
+
+### 系統需提供的資料來源
+
+參數檔下拉選單與地址元件的資料來自資料庫，但底層元件**不直接存取資料庫**，由系統實作介面並註冊：
+
+| 介面 | 方法 | 供哪個元件使用 |
+|------|------|----------------|
+| `IBaseParameterProvider` | `GetOptionsAsync(setItem)`：回傳參數群組的選項（代碼、名稱） | `BaseParameterSelect` |
+| `IBaseAddressProvider` | `GetCountiesAsync()`、`GetDistrictsAsync(county)`：縣市、鄉鎮市區與郵遞區號 | `BaseAddress` |
+
+```csharp
+// Program.cs (範例實作見 files/Services/CommonDataService.cs，含 10 分鐘快取)
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<CommonDataService>();
+builder.Services.AddScoped<IBaseParameterProvider>(sp => sp.GetRequiredService<CommonDataService>());
+builder.Services.AddScoped<IBaseAddressProvider>(sp => sp.GetRequiredService<CommonDataService>());
+```
+
 ### 版面與複合元件
 
 | 元件 | 用途 |
@@ -95,6 +147,7 @@
 | 新增 | A | 確定 | Y |
 | 重設 | C | 取消 | N |
 | 返回 | X | 匯出 | O |
+| 匯入 | I | | |
 | 列印、報表列印、清單列印 | R | 資料列印 | S |
 
 - 自訂：`AccessKey="P"`；不使用：`AccessKey=""`（例如清單每一列的編輯、刪除按鈕）。
