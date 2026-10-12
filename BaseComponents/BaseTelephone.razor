@@ -64,11 +64,7 @@
         if (Value != lastValue)
         {
             lastValue = Value;
-            var mainAndExt = (Value ?? string.Empty).Split('#', 2);
-            var parts = mainAndExt[0].Split('-', 2);
-            area = parts[0];
-            number = parts.Length > 1 ? parts[1] : null;
-            extension = mainAndExt.Length > 1 ? mainAndExt[1] : null;
+            (area, number, extension) = BasePhoneFormat.SplitTelephone(Value);
         }
     }
 
@@ -92,18 +88,7 @@
 
     private async Task UpdateValueAsync()
     {
-        if (string.IsNullOrEmpty(area) && string.IsNullOrEmpty(number) && string.IsNullOrEmpty(extension))
-        {
-            lastValue = null;
-        }
-        else
-        {
-            lastValue = $"{area}-{number}";
-            if (ShowExtension && !string.IsNullOrEmpty(extension))
-            {
-                lastValue += $"#{extension}";
-            }
-        }
+        lastValue = BasePhoneFormat.JoinTelephone(area, number, extension, ShowExtension);
 
         await ValueChanged.InvokeAsync(lastValue);
         if (ShowValidation)

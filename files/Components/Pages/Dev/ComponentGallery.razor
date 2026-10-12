@@ -40,10 +40,10 @@
             <BaseSelect @bind-Value="model.Status" Options="statusOptions" AllText="－ 全部 －" Width="140px" />
         </BaseField>
         <BaseField Label="數量">
-            <BaseNumeric @bind-Value="model.Qty" Min="1" Max="9999" />
+            <BaseNumeric @bind-Value="model.Qty" Min="1" Max="9999" IntegerDigits="4" />
         </BaseField>
         <BaseField Label="金額">
-            <BaseNumeric @bind-Value="model.Amount" Min="0" ShowStep="true" />
+            <BaseNumeric @bind-Value="model.Amount" Min="0" IntegerDigits="9" DecimalDigits="2" FixedDecimals="true" Width="160px" Placeholder="千分位、小數 2 位" />
         </BaseField>
         <BaseField Label="日期（西元）" Required="true">
             <BaseDatePicker @bind-Value="model.AdDate" />

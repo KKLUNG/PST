@@ -100,6 +100,84 @@
         }
     }, true);
 
+    // ---------- 自動轉大寫 (BaseTextBox UpperCase，data-uppercase) ----------
+    // 在瀏覽器端立即轉換，避免等伺服器回傳大寫時覆蓋快速輸入 (例如條碼機) 的內容而掉字
+    document.addEventListener('input', function (e) {
+        const field = e.target;
+        if (!field || !field.hasAttribute || !field.hasAttribute('data-uppercase') || e.isComposing) {
+            return;
+        }
+
+        const input = e.composedPath()[0];
+        if (!input || input === field || typeof input.value !== 'string') {
+            return;
+        }
+
+        const upper = input.value.toUpperCase();
+        if (upper !== input.value) {
+            const caret = input.selectionStart;
+            input.value = upper;
+            input.setSelectionRange(caret, caret);
+        }
+    }, true);
+
+    // ---------- 數字欄位 (BaseNumeric，data-numeric) ----------
+    // 進入欄位：顯示不含千分位的原始數字，方便修改
+    document.addEventListener('focusin', function (e) {
+        const field = e.target;
+        if (!field || !field.hasAttribute || !field.hasAttribute('data-numeric')) {
+            return;
+        }
+
+        const raw = field.getAttribute('data-raw') || '';
+        if (field.value !== raw) {
+            field.value = raw;
+        }
+        const input = field.shadowRoot ? field.shadowRoot.querySelector('input') : null;
+        if (input) {
+            input.dataset.lastValid = raw;
+            input.select();
+        }
+    }, true);
+
+    // 離開欄位：未修改時恢復千分位格式；有修改時由伺服器回傳新的格式化結果
+    document.addEventListener('focusout', function (e) {
+        const field = e.target;
+        if (!field || !field.hasAttribute || !field.hasAttribute('data-numeric')) {
+            return;
+        }
+
+        if (field.value === (field.getAttribute('data-raw') || '')) {
+            field.value = field.getAttribute('data-formatted') || '';
+        }
+    }, true);
+
+    // 輸入限制：整數位數、小數位數、負號 (規則同 BaseNumberFormat.InputPattern)
+    document.addEventListener('input', function (e) {
+        const field = e.target;
+        if (!field || !field.hasAttribute || !field.hasAttribute('data-numeric') || e.isComposing) {
+            return;
+        }
+
+        const input = e.composedPath()[0];
+        if (!input || input === field) {
+            return;
+        }
+
+        const intDigits = parseInt(field.getAttribute('data-int-digits') || '15', 10);
+        const decDigits = parseInt(field.getAttribute('data-dec-digits') || '0', 10);
+        const sign = field.getAttribute('data-negative') === 'true' ? '-?' : '';
+        const decimals = decDigits > 0 ? '(\\.\\d{0,' + decDigits + '})?' : '';
+        const pattern = new RegExp('^' + sign + '\\d{0,' + intDigits + '}' + decimals + '$');
+
+        if (pattern.test(input.value)) {
+            input.dataset.lastValid = input.value;
+        } else {
+            // 不符合規則：恢復上一次正確的內容 (在 Fluent 元件讀取前修正)
+            input.value = input.dataset.lastValid || '';
+        }
+    }, true);
+
     // 輸入滿長度自動跳下一個欄位
     document.addEventListener('input', function (e) {
         const field = e.target;

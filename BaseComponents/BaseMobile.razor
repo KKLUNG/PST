@@ -53,9 +53,7 @@
         if (Value != lastValue)
         {
             lastValue = Value;
-            var parts = (Value ?? string.Empty).Split('-', 2);
-            prefix = parts[0];
-            number = parts.Length > 1 ? parts[1] : null;
+            (prefix, number) = BasePhoneFormat.SplitMobile(Value);
         }
     }
 
@@ -73,7 +71,7 @@
 
     private async Task UpdateValueAsync()
     {
-        lastValue = string.IsNullOrEmpty(prefix) && string.IsNullOrEmpty(number) ? null : $"{prefix}-{number}";
+        lastValue = BasePhoneFormat.JoinMobile(prefix, number);
         await ValueChanged.InvokeAsync(lastValue);
         if (ShowValidation)
         {

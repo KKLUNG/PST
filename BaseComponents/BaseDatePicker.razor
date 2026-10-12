@@ -5,7 +5,7 @@
 *@
 <div class="base-input-wrap" style="@WidthStyle">
     <FluentDatePicker Value="@Value"
-                      ValueChanged="@ValueChanged"
+                      ValueChanged="@OnValueChanged"
                       ValueExpression="@ValueExpression"
                       Culture="@(Roc ? RocCulture : AdCulture)"
                       Placeholder="@(Placeholder ?? (Roc ? "例：115/10/12" : "例：2026/10/12"))"
@@ -22,10 +22,10 @@
 
 @code {
     /// <summary>西元年 (yyyy/MM/dd)</summary>
-    private static readonly CultureInfo AdCulture = CreateCulture(roc: false);
+    private static readonly CultureInfo AdCulture = CreateAdCulture();
 
-    /// <summary>民國年 (yyy/MM/dd)：zh-TW 文化搭配 TaiwanCalendar</summary>
-    private static readonly CultureInfo RocCulture = CreateCulture(roc: true);
+    /// <summary>民國年 (yyy/MM/dd)：規則見 BaseDateFormat</summary>
+    private static readonly CultureInfo RocCulture = BaseDateFormat.Roc;
 
     [CascadingParameter] private EditContext? EditContext { get; set; }
 
@@ -62,18 +62,14 @@
     private bool DisabledDate(DateTime date) =>
         (Min.HasValue && date.Date < Min.Value.Date) || (Max.HasValue && date.Date > Max.Value.Date);
 
-    private static CultureInfo CreateCulture(bool roc)
+    // 民國年欄位誤輸入西元年 (例如 2026/10/12) 時自動修正，規則見 BaseDateFormat.FixAdYearTypedAsRoc
+    private Task OnValueChanged(DateTime? value) =>
+        ValueChanged.InvokeAsync(Roc ? BaseDateFormat.FixAdYearTypedAsRoc(value) : value);
+
+    private static CultureInfo CreateAdCulture()
     {
         var culture = (CultureInfo)CultureInfo.GetCultureInfo("zh-TW").Clone();
-        if (roc)
-        {
-            culture.DateTimeFormat.Calendar = new TaiwanCalendar();
-            culture.DateTimeFormat.ShortDatePattern = "yyy/MM/dd";
-        }
-        else
-        {
-            culture.DateTimeFormat.ShortDatePattern = "yyyy/MM/dd";
-        }
+        culture.DateTimeFormat.ShortDatePattern = "yyyy/MM/dd";
         return culture;
     }
 }

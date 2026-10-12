@@ -24,27 +24,6 @@
 </FluentButton>
 
 @code {
-    /// <summary>
-    /// 依按鈕文字自動帶入的快速鍵 (與既有系統慣例一致)
-    /// 文字完全相同或以此開頭者適用，例如「報表列印」→ R
-    /// </summary>
-    public static readonly IReadOnlyDictionary<string, string> DefaultAccessKeys = new Dictionary<string, string>
-    {
-        { "新增", "A" },
-        { "查詢", "Y" },
-        { "重設", "C" },
-        { "返回", "X" },
-        { "儲存", "Y" },
-        { "列印", "R" },
-        { "報表列印", "R" },
-        { "清單列印", "R" },
-        { "資料列印", "S" },
-        { "匯出", "O" },
-        { "匯入", "I" },
-        { "確定", "Y" },
-        { "取消", "N" },
-    };
-
     /// <summary>按鈕文字</summary>
     [Parameter, EditorRequired] public string Text { get; set; } = string.Empty;
 
@@ -69,24 +48,8 @@
 
     private bool busy;
 
-    /// <summary>實際使用的快速鍵</summary>
-    private string? Key
-    {
-        get
-        {
-            if (AccessKey is not null)
-            {
-                return AccessKey == string.Empty ? null : AccessKey.ToUpperInvariant();
-            }
-
-            if (DefaultAccessKeys.TryGetValue(Text, out var key))
-            {
-                return key;
-            }
-
-            return DefaultAccessKeys.FirstOrDefault(x => Text.StartsWith(x.Key)).Value;
-        }
-    }
+    /// <summary>實際使用的快速鍵 (規則見 BaseAccessKeys)</summary>
+    private string? Key => BaseAccessKeys.Resolve(Text, AccessKey);
 
     private Appearance FluentAppearance => Kind == BaseButtonKind.Default ? Appearance.Neutral : Appearance.Accent;
 

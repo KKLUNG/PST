@@ -90,7 +90,7 @@
     /// </summary>
     public bool Validate()
     {
-        rangeError = GetRangeError();
+        rangeError = BaseDateRangeRules.GetError(StartValue, EndValue, MaxMonths);
 
         if (messageStore is not null)
         {
@@ -103,28 +103,9 @@
             EditContext!.NotifyValidationStateChanged();
         }
 
-        StateHasChanged();
+        // 可能由頁面在任何執行緒呼叫，以 InvokeAsync 更新畫面
+        _ = InvokeAsync(StateHasChanged);
         return rangeError is null;
-    }
-
-    private string? GetRangeError()
-    {
-        if (StartValue is null || EndValue is null)
-        {
-            return null;
-        }
-
-        if (StartValue.Value.Date > EndValue.Value.Date)
-        {
-            return "起日不可大於迄日";
-        }
-
-        if (MaxMonths > 0 && EndValue.Value.Date > StartValue.Value.Date.AddMonths(MaxMonths))
-        {
-            return $"查詢區間最長為 {MaxMonths} 個月，請重新設定";
-        }
-
-        return null;
     }
 
     private async Task OnStartChanged(DateTime? value)

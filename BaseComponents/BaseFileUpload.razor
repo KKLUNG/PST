@@ -31,7 +31,7 @@
         <ul class="base-upload-files">
             @foreach (var file in files)
             {
-                <li>📄 @file.Name <span class="base-hint">(@FormatSize(file.Size))</span></li>
+                <li>📄 @file.Name <span class="base-hint">(@BaseUploadRules.FormatSize(file.Size))</span></li>
             }
             @foreach (var error in fileErrors)
             {
@@ -94,30 +94,20 @@
         fileErrors.Clear();
         result = null;
 
-        var allowed = (Accept ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(x => x.ToLowerInvariant())
-            .ToHashSet();
-        var maxBytes = MaxFileSizeMB * 1024L * 1024L;
         var selected = Multiple ? e.GetMultipleFiles(100) : [e.File];
 
         foreach (var file in selected)
         {
-            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
-            if (allowed.Count > 0 && !allowed.Contains(extension))
+            // 檢查副檔名與大小 (規則見 BaseUploadRules)
+            var error = BaseUploadRules.Check(file.Name, file.Size, Accept, MaxFileSizeMB);
+            if (error is not null)
             {
-                fileErrors.Add($"{file.Name}：檔案格式不符，僅允許 {Accept}");
-                continue;
-            }
-
-            if (file.Size > maxBytes)
-            {
-                fileErrors.Add($"{file.Name}：檔案過大 ({FormatSize(file.Size)})，上限 {MaxFileSizeMB} MB");
+                fileErrors.Add(error);
                 continue;
             }
 
             using var stream = new MemoryStream();
-            await file.OpenReadStream(maxBytes).CopyToAsync(stream);
+            await file.OpenReadStream(BaseUploadRules.MaxBytes(MaxFileSizeMB)).CopyToAsync(stream);
             files.Add(new BaseUploadFile(file.Name, file.Size, stream.ToArray()));
         }
     }
@@ -137,6 +127,13 @@
             {
                 files.Clear();
             }
+
+            // OnUpload 需回傳結果所以是一般委派 (Func)，不像 EventCallback 會自動讓呼叫的頁面重新轉譯；
+            // 主動通知頁面重新轉譯，頁面在 OnUpload 中更新的資料 (例如清單) 才會立即顯示
+            if (OnUpload.Target is IHandleEvent page && !ReferenceEquals(page, this))
+            {
+                await page.HandleEventAsync(EventCallbackWorkItem.Empty, null);
+            }
         }
         catch (Exception ex)
         {
@@ -147,11 +144,4 @@
             uploading = false;
         }
     }
-
-    private static string FormatSize(long bytes) => bytes switch
-    {
-        >= 1024 * 1024 => $"{bytes / 1024d / 1024d:0.0} MB",
-        >= 1024 => $"{bytes / 1024d:0.0} KB",
-        _ => $"{bytes} B",
-    };
 }

@@ -1,24 +1,23 @@
-@typeparam TValue where TValue : new()
+@typeparam TValue
 @*
-    數字方框 (int、decimal、double 及其可為 null 型別)
-    - Min / Max：允許範圍
-    - ShowStep：是否顯示上下調整按鈕 (預設不顯示)
-    用法：<BaseNumeric @bind-Value="model.Qty" Min="0" Max="9999" />
+    數字方框 (int、long、decimal、double 及其可為 null 型別)
+    - 千分位：離開欄位時顯示 1,234,567.5；進入欄位時顯示 1234567.5 方便修改
+    - IntegerDigits / DecimalDigits：整數、小數最多幾位，超過的輸入會被擋下
+      (小數位數預設：整數型別 0 位，其他 2 位)
+    - FixedDecimals：固定顯示小數位數 (例如金額 1,234.50)
+    - Min / Max：超出範圍時自動修正為上下限
+    用法：<BaseNumeric @bind-Value="model.Amount" IntegerDigits="9" DecimalDigits="2" FixedDecimals="true" Min="0" />
 *@
 <div class="base-input-wrap" style="@WidthStyle">
-    <FluentNumberField TValue="TValue"
-                       Value="@Value"
-                       ValueChanged="@ValueChanged"
-                       ValueExpression="@ValueExpression"
-                       Min="@MinText"
-                       Max="@MaxText"
-                       HideStep="@(!ShowStep)"
-                       Placeholder="@Placeholder"
-                       ReadOnly="@ReadOnly"
-                       Disabled="@Disabled"
-                       Immediate="true"
-                       ParsingErrorMessage="請輸入數字"
-                       Class="@($"base-input base-numeric {Class}".Trim())" />
+    <FluentTextField Value="@formatted"
+                     ValueChanged="@OnTextChanged"
+                     Placeholder="@Placeholder"
+                     ReadOnly="@ReadOnly"
+                     Disabled="@Disabled"
+                     AutoComplete="off"
+                     InputMode="InputMode.Decimal"
+                     Class="@($"base-input base-numeric {Class}".Trim())"
+                     AdditionalAttributes="@InputAttributes" />
     @if (ShowValidation)
     {
         <FluentValidationMessage For="@ValueExpression" Class="base-validation-message" />
@@ -28,17 +27,27 @@
 @code {
     [CascadingParameter] private EditContext? EditContext { get; set; }
 
-    [Parameter] public TValue Value { get; set; } = default!;
+    [Parameter] public TValue? Value { get; set; }
 
-    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    [Parameter] public EventCallback<TValue?> ValueChanged { get; set; }
 
-    [Parameter] public Expression<Func<TValue>>? ValueExpression { get; set; }
+    [Parameter] public Expression<Func<TValue?>>? ValueExpression { get; set; }
+
+    /// <summary>整數最多幾位 (預設 15)</summary>
+    [Parameter] public int IntegerDigits { get; set; } = 15;
+
+    /// <summary>小數最多幾位；未設定時整數型別為 0，其他為 2</summary>
+    [Parameter] public int? DecimalDigits { get; set; }
+
+    /// <summary>是否顯示千分位 (預設顯示)</summary>
+    [Parameter] public bool ThousandSeparator { get; set; } = true;
+
+    /// <summary>固定顯示小數位數 (例如 1,234.50)</summary>
+    [Parameter] public bool FixedDecimals { get; set; }
 
     [Parameter] public decimal? Min { get; set; }
 
     [Parameter] public decimal? Max { get; set; }
-
-    [Parameter] public bool ShowStep { get; set; }
 
     [Parameter] public string? Placeholder { get; set; }
 
@@ -51,11 +60,53 @@
 
     [Parameter] public string? Class { get; set; }
 
+    private string formatted = string.Empty;
+    private string raw = string.Empty;
+
+    private int Decimals => DecimalDigits ?? (BaseNumberFormat.IsIntegerType<TValue>() ? 0 : 2);
+
+    private bool AllowNegative => Min is null || Min < 0;
+
     private bool ShowValidation => EditContext is not null && ValueExpression is not null;
 
     private string WidthStyle => $"--base-input-width: {Width}";
 
-    private string? MinText => Min?.ToString(CultureInfo.InvariantCulture);
+    // 提供給 base-components.js：輸入限制、進入/離開欄位時切換顯示格式
+    private Dictionary<string, object> InputAttributes => new()
+    {
+        ["data-numeric"] = "true",
+        ["data-int-digits"] = IntegerDigits,
+        ["data-dec-digits"] = Decimals,
+        ["data-negative"] = AllowNegative ? "true" : "false",
+        ["data-raw"] = raw,
+        ["data-formatted"] = formatted,
+    };
 
-    private string? MaxText => Max?.ToString(CultureInfo.InvariantCulture);
+    protected override void OnParametersSet()
+    {
+        var value = BaseNumberFormat.FromValue(Value);
+        formatted = BaseNumberFormat.Format(value, Decimals, ThousandSeparator, FixedDecimals);
+        raw = BaseNumberFormat.FormatRaw(value);
+    }
+
+    private async Task OnTextChanged(string? text)
+    {
+        if (!BaseNumberFormat.TryParse(text, out var parsed))
+        {
+            // 無法解析 (例如只輸入「-」)：視為清空
+            parsed = null;
+        }
+
+        var normalized = BaseNumberFormat.Normalize(parsed, Decimals, Min, Max);
+        var newValue = BaseNumberFormat.ToValue<TValue>(normalized);
+
+        Value = newValue;
+        OnParametersSet();
+        await ValueChanged.InvokeAsync(newValue);
+
+        if (ShowValidation)
+        {
+            EditContext!.NotifyFieldChanged(FieldIdentifier.Create(ValueExpression!));
+        }
+    }
 }
