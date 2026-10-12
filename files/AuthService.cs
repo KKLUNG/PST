@@ -4,7 +4,6 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using BlazorUserManagement.Data;
-using BCrypt.Net;
 
 namespace BlazorUserManagement.Services
 {
@@ -60,7 +59,7 @@ namespace BlazorUserManagement.Services
                 }
 
                 // 驗證密碼
-                if (!BCrypt.Verify(request.Password, user.PasswordHash))
+                if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
                     _logger.LogWarning($"登入失敗: 使用者 '{request.Username}' 密碼錯誤");
                     return new LoginResponse
@@ -196,7 +195,7 @@ namespace BlazorUserManagement.Services
         /// </summary>
         public string HashPassword(string password)
         {
-            return BCrypt.HashPassword(password);
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
         /// <summary>
@@ -204,7 +203,7 @@ namespace BlazorUserManagement.Services
         /// </summary>
         public bool VerifyPassword(string password, string hash)
         {
-            return BCrypt.Verify(password, hash);
+            return BCrypt.Net.BCrypt.Verify(password, hash);
         }
 
         /// <summary>
