@@ -1,0 +1,219 @@
+@page "/users"
+@using BlazorUserManagement.Data
+@using BlazorUserManagement.Services
+@inject UserService UserService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+
+<PageTitle>使用者管理 - 使用者管理系統</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+    <div class="mb-6">
+        <MudText Typo="Typo.H4" GutterBottom="true">
+            <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2"></MudIcon>
+            使用者管理
+        </MudText>
+        <MudText Typo="Typo.Body2" Color="Color.TextSecondary">
+            管理系統中的所有使用者帳號，可進行新增、編輯及刪除操作
+        </MudText>
+    </div>
+
+    <MudPaper Class="pa-6 mb-6">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudTextField 
+                @bind-Value="searchText"
+                Placeholder="搜尋使用者名稱、信箱或姓名..."
+                Variant="Variant.Outlined"
+                Adornment="Adornment.Start"
+                AdornmentIcon="@Icons.Material.Filled.Search"
+                Class="flex-grow-1 mr-4"
+                Disabled="@isLoading">
+            </MudTextField>
+            <MudButton 
+                Variant="Variant.Filled"
+                Color="Color.Primary"
+                StartIcon="@Icons.Material.Filled.Add"
+                Size="Size.Large"
+                OnClick="@OpenCreateDialog"
+                Disabled="@isLoading">
+                新增使用者
+            </MudButton>
+        </div>
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true"></MudProgressLinear>
+            <MudText Align="Align.Center" Class="py-8">加載中...</MudText>
+        }
+        else if (filteredUsers == null || filteredUsers.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Center" Class="py-8">
+                <MudText>尚無使用者資料</MudText>
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="filteredUsers" Striped="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>使用者名稱</MudTh>
+                    <MudTh>電子郵件</MudTh>
+                    <MudTh>姓名</MudTh>
+                    <MudTh>狀態</MudTh>
+                    <MudTh>建立日期</MudTh>
+                    <MudTh Align="Align.Right">操作</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="使用者名稱">
+                        <MudText Typo="Typo.Body2">@context.Username</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="電子郵件">
+                        <MudLink Href="@($"mailto:{context.Email}")" Target="_blank">
+                            @context.Email
+                        </MudLink>
+                    </MudTd>
+                    <MudTd DataLabel="姓名">
+                        <MudText Typo="Typo.Body2">@(context.FullName ?? "-")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="狀態">
+                        @if (context.IsActive)
+                        {
+                            <MudChip Color="Color.Success" Variant="Variant.Text" Size="Size.Small">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-1"></MudIcon>
+                                啟用
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip Color="Color.Error" Variant="Variant.Text" Size="Size.Small">
+                                <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Class="mr-1"></MudIcon>
+                                停用
+                            </MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="建立日期">
+                        <MudText Typo="Typo.Body2">@context.CreatedDate.ToString("yyyy-MM-dd")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="操作" Align="Align.Right">
+                        <MudButtonGroup Variant="Variant.Text" Size="Size.Small">
+                            <MudButton 
+                                Color="Color.Primary"
+                                StartIcon="@Icons.Material.Filled.Edit"
+                                OnClick="@(() => OpenEditDialog(context.UserId))">
+                                編輯
+                            </MudButton>
+                            <MudButton 
+                                Color="Color.Error"
+                                StartIcon="@Icons.Material.Filled.Delete"
+                                OnClick="@(() => OpenDeleteConfirm(context.UserId, context.Username))">
+                                刪除
+                            </MudButton>
+                        </MudButtonGroup>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private List<UserDto> users = new();
+    private List<UserDto> filteredUsers = new();
+    private string searchText = string.Empty;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            isLoading = true;
+            users = await UserService.GetAllUsersAsync();
+            FilterUsers();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"載入使用者失敗: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterUsers()
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredUsers = users;
+        }
+        else
+        {
+            var searchLower = searchText.ToLower();
+            filteredUsers = users
+                .Where(u => u.Username.ToLower().Contains(searchLower) ||
+                           u.Email.ToLower().Contains(searchLower) ||
+                           (u.FullName != null && u.FullName.ToLower().Contains(searchLower)))
+                .ToList();
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<UserEdit>("新增使用者");
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadUsers();
+        }
+    }
+
+    private async Task OpenEditDialog(int userId)
+    {
+        var parameters = new DialogParameters { { "UserId", userId } };
+        var dialog = await DialogService.ShowAsync<UserEdit>("編輯使用者", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadUsers();
+        }
+    }
+
+    private async Task OpenDeleteConfirm(int userId, string username)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ContentText", $"確認要刪除使用者 '{username}' 嗎？此操作無法復原。" },
+            { "ButtonText", "刪除" },
+            { "Color", Color.Error }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("刪除確認", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && (bool)result.Data)
+        {
+            await DeleteUser(userId);
+        }
+    }
+
+    private async Task DeleteUser(int userId)
+    {
+        try
+        {
+            await UserService.DeleteUserAsync(userId);
+            Snackbar.Add("使用者已刪除", Severity.Success);
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"刪除失敗: {ex.Message}", Severity.Error);
+        }
+    }
+}
