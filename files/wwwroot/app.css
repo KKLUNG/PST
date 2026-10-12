@@ -233,6 +233,23 @@ a:hover {
     color: var(--danger);
 }
 
+/* ========== 底層元件展示頁 ========== */
+.gallery-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0;
+}
+
+.gallery-values {
+    background: #f6f8f4;
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    font-size: 12px;
+    max-height: 320px;
+    overflow: auto;
+}
+
 /* ========== 登入頁 ========== */
 .login-main {
     display: flex;

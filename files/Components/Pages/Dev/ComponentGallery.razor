@@ -1,0 +1,194 @@
+@page "/dev/components"
+@attribute [Authorize]
+@using System.ComponentModel.DataAnnotations
+@using System.Text.Json
+@inject BaseNotifier Notifier
+@inject BaseDialogService Dialog
+
+@*
+    底層元件展示：列出所有基礎元件的外觀與用法，供開發時參考
+*@
+
+<PageTitle>底層元件展示 - 使用者管理系統</PageTitle>
+<SectionContent SectionName="breadcrumb">開發工具 &gt; 底層元件展示</SectionContent>
+
+<div class="section-title">輸入元件（含資料驗證與鍵盤操作）</div>
+<p class="text-muted">
+    在欄位中按 Enter 會跳到下一個欄位，最後一個欄位按 Enter 移到「儲存」按鈕；
+    「局號」輸入滿 6 碼會自動跳下一欄。直接按「儲存」可看到驗證訊息。
+</p>
+
+<EditForm Model="model" OnValidSubmit="SaveAsync" class="base-keyboard-nav">
+    <DataAnnotationsValidator />
+    <div class="base-field-grid">
+        <BaseField Label="帳號" Required="true">
+            <BaseTextBox @bind-Value="model.UserId" MaxLength="10" AutoNext="false" Placeholder="3-10 個字元" />
+        </BaseField>
+        <BaseField Label="局號" Required="true">
+            <BaseTextBox @bind-Value="model.BranchNo" MaxLength="6" Width="120px" Placeholder="6 位數字" />
+        </BaseField>
+        <BaseField Label="產品代碼">
+            <BaseTextBox @bind-Value="model.ProductCode" MaxLength="8" UpperCase="true" Width="140px" Placeholder="自動轉大寫" />
+        </BaseField>
+        <BaseField Label="密碼">
+            <BaseTextBox @bind-Value="model.Password" Type="BaseTextType.Password" AutoComplete="new-password" />
+        </BaseField>
+        <BaseField Label="單位" Required="true">
+            <BaseSelect @bind-Value="model.Unit" Options="unitOptions" />
+        </BaseField>
+        <BaseField Label="狀態（含全部）">
+            <BaseSelect @bind-Value="model.Status" Options="statusOptions" AllText="－ 全部 －" Width="140px" />
+        </BaseField>
+        <BaseField Label="數量">
+            <BaseNumeric @bind-Value="model.Qty" Min="1" Max="9999" />
+        </BaseField>
+        <BaseField Label="金額">
+            <BaseNumeric @bind-Value="model.Amount" Min="0" ShowStep="true" />
+        </BaseField>
+        <BaseField Label="日期（西元）" Required="true">
+            <BaseDatePicker @bind-Value="model.AdDate" />
+        </BaseField>
+        <BaseField Label="日期（民國）">
+            <BaseDatePicker @bind-Value="model.RocDate" Roc="true" />
+        </BaseField>
+        <BaseField Label="性別">
+            <BaseRadioGroup @bind-Value="model.Gender" Options="genderOptions" />
+        </BaseField>
+        <BaseField Label="同意">
+            <BaseCheckBox @bind-Value="model.Agree" Label="我已閱讀並同意" />
+        </BaseField>
+        <BaseField Label="備註" ColSpan="2">
+            <BaseTextArea @bind-Value="model.Remark" MaxLength="200" Placeholder="多行文字，Enter 為換行" />
+        </BaseField>
+    </div>
+    <div class="base-button-bar">
+        <BaseButton Text="儲存" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Save" ButtonType="ButtonType.Submit" />
+        <BaseButton Text="重設" Icon="BaseIcon.Reset" OnClick="Reset" />
+    </div>
+</EditForm>
+
+<div class="section-title">唯讀與停用</div>
+<div class="base-field-grid">
+    <BaseField Label="唯讀">
+        <BaseTextBox Value="唯讀內容" ReadOnly="true" />
+    </BaseField>
+    <BaseField Label="停用">
+        <BaseTextBox Value="停用內容" Disabled="true" />
+    </BaseField>
+    <BaseField Label="停用選單">
+        <BaseSelect Value="@("A")" Options="unitOptions" Disabled="true" />
+    </BaseField>
+    <BaseField Label="停用核取">
+        <BaseCheckBox Value="true" Label="已勾選" Disabled="true" />
+    </BaseField>
+</div>
+
+<div class="section-title">按鈕（快速鍵依文字自動帶入）</div>
+<div class="gallery-buttons">
+    <BaseButton Text="查詢" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Search" OnClick="@(() => Clicked("查詢"))" />
+    <BaseButton Text="新增" Icon="BaseIcon.Add" OnClick="@(() => Clicked("新增"))" />
+    <BaseButton Text="重設" Icon="BaseIcon.Reset" OnClick="@(() => Clicked("重設"))" />
+    <BaseButton Text="報表列印" Icon="BaseIcon.Print" OnClick="@(() => Clicked("報表列印"))" />
+    <BaseButton Text="匯出" Icon="BaseIcon.Export" OnClick="@(() => Clicked("匯出"))" />
+    <BaseButton Text="返回" Icon="BaseIcon.Back" OnClick="@(() => Clicked("返回"))" />
+    <BaseButton Text="刪除" Kind="BaseButtonKind.Danger" Icon="BaseIcon.Delete" OnClick="ConfirmDeleteAsync" />
+    <BaseButton Text="處理中示範" AccessKey="" OnClick="SlowAsync" />
+</div>
+<p class="text-muted">
+    按鈕文字後的 (Y)、(A)… 為快速鍵，按 Alt + 字母即可觸發。「處理中示範」會執行 2 秒，期間按鈕自動停用，避免重複點擊。
+</p>
+
+<div class="section-title">目前的值</div>
+<pre class="gallery-values">@CurrentValues</pre>
+
+@code {
+    private static readonly BaseOption<string?>[] unitOptions =
+    [
+        new("A", "A - 台北郵局"),
+        new("B", "B - 台中郵局"),
+        new("C", "C - 高雄郵局"),
+    ];
+
+    private static readonly BaseOption<bool?>[] statusOptions =
+    [
+        new(true, "啟用"),
+        new(false, "停用"),
+    ];
+
+    private static readonly BaseOption<string>[] genderOptions =
+    [
+        new("M", "男"),
+        new("F", "女"),
+    ];
+
+    private static readonly JsonSerializerOptions jsonOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    private DemoModel model = new();
+
+    private string CurrentValues => JsonSerializer.Serialize(model, jsonOptions);
+
+    private void SaveAsync() => Notifier.Success("驗證通過，資料已儲存（示範）");
+
+    private void Reset() => model = new DemoModel();
+
+    private void Clicked(string text) => Notifier.Info($"按下「{text}」");
+
+    private async Task ConfirmDeleteAsync()
+    {
+        if (await Dialog.ConfirmAsync("確認要刪除嗎？（示範）", "刪除確認", "刪除"))
+        {
+            Notifier.Success("已刪除（示範）");
+        }
+    }
+
+    private async Task SlowAsync()
+    {
+        await Task.Delay(2000);
+        Notifier.Success("處理完成");
+    }
+
+    /// <summary>
+    /// 示範用資料模型 (驗證規則以 DataAnnotations 設定)
+    /// </summary>
+    private class DemoModel
+    {
+        [Required(ErrorMessage = "請輸入帳號")]
+        [StringLength(10, MinimumLength = 3, ErrorMessage = "帳號長度須為 3-10 個字元")]
+        public string? UserId { get; set; }
+
+        [Required(ErrorMessage = "請輸入局號")]
+        [RegularExpression(@"^\d{6}$", ErrorMessage = "局號須為 6 位數字")]
+        public string? BranchNo { get; set; }
+
+        public string? ProductCode { get; set; }
+
+        public string? Password { get; set; }
+
+        [Required(ErrorMessage = "請選擇單位")]
+        public string? Unit { get; set; }
+
+        public bool? Status { get; set; }
+
+        [Range(1, 9999, ErrorMessage = "數量須介於 1-9999")]
+        public int? Qty { get; set; }
+
+        [Range(0, 100000000, ErrorMessage = "金額不可為負數")]
+        public decimal? Amount { get; set; }
+
+        [Required(ErrorMessage = "請選擇日期")]
+        public DateTime? AdDate { get; set; }
+
+        public DateTime? RocDate { get; set; }
+
+        public string Gender { get; set; } = "M";
+
+        public bool Agree { get; set; }
+
+        [StringLength(200, ErrorMessage = "備註最多 200 個字元")]
+        public string? Remark { get; set; }
+    }
+}
