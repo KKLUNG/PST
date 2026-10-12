@@ -1,0 +1,70 @@
+@*
+    共用按鈕
+    - Kind：Default (一般)、Primary (主要)、Danger (危險，如刪除)
+    - AccessKey：設定後文字自動加上「(Q)」，並可用 Alt+Q 觸發
+    用法：<BaseButton Text="查詢" AccessKey="Q" Kind="BaseButtonKind.Primary" OnClick="SearchAsync" />
+*@
+<MudButton Variant="@MudVariant"
+           Color="@MudColor"
+           Size="Size.Small"
+           StartIcon="@Icon"
+           ButtonType="@ButtonType"
+           Disabled="@Disabled"
+           OnClick="@OnClick"
+           DropShadow="false"
+           Class="@($"base-button {Class}".Trim())"
+           UserAttributes="@ButtonAttributes">
+    @DisplayText
+</MudButton>
+
+@code {
+    /// <summary>按鈕文字</summary>
+    [Parameter, EditorRequired] public string Text { get; set; } = string.Empty;
+
+    /// <summary>快速鍵字母，例如 "Q" 顯示為「查詢(Q)」並以 Alt+Q 觸發</summary>
+    [Parameter] public string? AccessKey { get; set; }
+
+    [Parameter] public BaseButtonKind Kind { get; set; } = BaseButtonKind.Default;
+
+    /// <summary>圖示，例如 Icons.Material.Filled.Search</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    [Parameter] public ButtonType ButtonType { get; set; } = ButtonType.Button;
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>其他 HTML 屬性 (例如 title、data-*) 會直接加到按鈕上</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string DisplayText =>
+        string.IsNullOrEmpty(AccessKey) ? Text : $"{Text}({AccessKey.ToUpperInvariant()})";
+
+    private Variant MudVariant => Kind == BaseButtonKind.Default ? Variant.Outlined : Variant.Filled;
+
+    private Color MudColor => Kind switch
+    {
+        BaseButtonKind.Primary => Color.Primary,
+        BaseButtonKind.Danger => Color.Error,
+        _ => Color.Default,
+    };
+
+    private Dictionary<string, object> ButtonAttributes
+    {
+        get
+        {
+            var attributes = AdditionalAttributes is null
+                ? new Dictionary<string, object>()
+                : new Dictionary<string, object>(AdditionalAttributes);
+            if (!string.IsNullOrEmpty(AccessKey))
+            {
+                attributes["accesskey"] = AccessKey.ToLowerInvariant();
+            }
+            return attributes;
+        }
+    }
+}

@@ -1,0 +1,15 @@
+@*
+    底層元件所需的 MudBlazor 提供者 (主題、彈出層、對話框、訊息通知)
+    放在系統的 MainLayout 中一次即可
+*@
+<MudThemeProvider Theme="@(Theme ?? BaseTheme.Default)" />
+<MudPopoverProvider />
+<MudDialogProvider CloseOnEscapeKey="true" BackdropClick="false" />
+<MudSnackbarProvider />
+
+@code {
+    /// <summary>
+    /// 自訂主題 (未指定時使用 BaseTheme.Default)
+    /// </summary>
+    [Parameter] public MudTheme? Theme { get; set; }
+}

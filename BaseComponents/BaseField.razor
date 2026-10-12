@@ -1,0 +1,30 @@
+@*
+    欄位 (標籤 + 內容)，放在 BaseQueryPanel 或 BaseFormDialog 內使用，自動排成表格式版面
+    - ColSpan：內容橫跨幾組欄位 (預設 1)
+    用法：<BaseField Label="帳號" Required="true"><BaseTextBox @bind-Value="model.Username" /></BaseField>
+*@
+<div class="base-field-label">
+    @Label
+    @if (Required)
+    {
+        <span class="base-required">*</span>
+    }
+</div>
+<div class="base-field-content" style="@SpanStyle">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    /// <summary>是否顯示必填記號 *</summary>
+    [Parameter] public bool Required { get; set; }
+
+    /// <summary>內容橫跨幾組欄位 (一組 = 標籤 + 內容)</summary>
+    [Parameter] public int ColSpan { get; set; } = 1;
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    // 一組欄位佔 2 欄 (標籤、內容)，橫跨 n 組時內容佔 2n-1 欄
+    private string? SpanStyle => ColSpan > 1 ? $"--base-span: {ColSpan * 2 - 1}" : null;
+}

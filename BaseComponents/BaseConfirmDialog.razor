@@ -1,0 +1,27 @@
+@*
+    確認對話框 (由 BaseDialogService.ConfirmAsync 開啟，不需直接使用)
+*@
+<MudDialog Class="base-confirm-dialog">
+    <DialogContent>
+        <div class="base-confirm-message">@Message</div>
+    </DialogContent>
+    <DialogActions>
+        <BaseButton Text="@ConfirmText" Kind="@(Danger ? BaseButtonKind.Danger : BaseButtonKind.Primary)" OnClick="Confirm" />
+        <BaseButton Text="取消" OnClick="Cancel" />
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public string Message { get; set; } = string.Empty;
+
+    [Parameter] public string ConfirmText { get; set; } = "確定";
+
+    /// <summary>危險操作 (如刪除) 時確認按鈕顯示為紅色</summary>
+    [Parameter] public bool Danger { get; set; }
+
+    private void Confirm() => MudDialog?.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog?.Cancel();
+}

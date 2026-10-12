@@ -1,0 +1,52 @@
+@typeparam TValue
+@*
+    下拉選單，選項以 BaseOption 清單提供
+    - AllText：設定後會多一個「全部」選項 (值為 default，適合查詢條件使用可為 null 的型別，如 bool?)
+    用法：<BaseSelect @bind-Value="query.IsActive" Options="statusOptions" AllText="－ 全部 －" />
+*@
+<MudSelect T="TValue"
+           Value="@Value"
+           ValueChanged="@ValueChanged"
+           For="@ValueExpression"
+           ToStringFunc="@ToText"
+           Placeholder="@AllText"
+           Disabled="@Disabled"
+           ReadOnly="@ReadOnly"
+           Variant="Variant.Outlined"
+           Margin="Margin.Dense"
+           Dense="true"
+           Class="@($"base-input base-select {Class}".Trim())">
+    @if (AllText is not null)
+    {
+        <MudSelectItem T="TValue" Value="@(default(TValue))">@AllText</MudSelectItem>
+    }
+    @foreach (var option in Options)
+    {
+        <MudSelectItem T="TValue" Value="@option.Value">@option.Text</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public TValue? Value { get; set; }
+
+    [Parameter] public EventCallback<TValue?> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<TValue?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired] public IEnumerable<BaseOption<TValue>> Options { get; set; } = [];
+
+    /// <summary>「全部」選項文字，未設定則不顯示該選項</summary>
+    [Parameter] public string? AllText { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    private string? ToText(TValue? value)
+    {
+        var option = Options.FirstOrDefault(o => EqualityComparer<TValue>.Default.Equals(o.Value, value));
+        return option?.Text ?? (value is null ? AllText : value.ToString());
+    }
+}

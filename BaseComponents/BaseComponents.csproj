@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BaseComponents</RootNamespace>
+    <Version>1.0.0</Version>
+    <Description>共用底層 UI 元件庫（以 MudBlazor 為基礎），統一各系統的查詢、表格、表單、對話框寫法與樣式</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <!-- NuGet 套件依賴 -->
+  <ItemGroup>
+    <!-- MudBlazor UI 元件庫 (底層元件皆以其為基礎包裝) -->
+    <PackageReference Include="MudBlazor" Version="9.11.0" />
+  </ItemGroup>
+
+</Project>

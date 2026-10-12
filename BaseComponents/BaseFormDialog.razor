@@ -1,0 +1,62 @@
+@*
+    表單對話框：統一的欄位版面、資料驗證、存檔(S)／取消按鈕
+    在自訂的對話框元件中使用，以 BaseDialogService.ShowFormAsync 開啟
+    - OnSave：驗證通過後呼叫，回傳 true 時關閉對話框
+    用法 (UserEditDialog.razor)：
+    <BaseFormDialog Model="model" OnSave="SaveAsync">
+        <BaseField Label="帳號" Required="true"><BaseTextBox @bind-Value="model.Username" /></BaseField>
+    </BaseFormDialog>
+*@
+<MudDialog Class="base-form-dialog">
+    <DialogContent>
+        <EditForm Model="@Model" OnValidSubmit="@SaveAsync">
+            <DataAnnotationsValidator />
+            <div class="base-field-grid" style="--base-columns: @Columns">
+                @ChildContent
+            </div>
+            <div class="base-button-bar">
+                <BaseButton Text="@SaveText" AccessKey="S" Kind="BaseButtonKind.Primary"
+                            Icon="@Icons.Material.Filled.Save" ButtonType="ButtonType.Submit" Disabled="@saving" />
+                <BaseButton Text="取消" OnClick="Cancel" Disabled="@saving" />
+            </div>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>表單資料模型 (含 DataAnnotations 驗證屬性)</summary>
+    [Parameter, EditorRequired] public object Model { get; set; } = default!;
+
+    /// <summary>驗證通過後執行存檔，回傳 true 表示成功並關閉對話框</summary>
+    [Parameter, EditorRequired] public Func<Task<bool>> OnSave { get; set; } = default!;
+
+    /// <summary>表單欄位 (BaseField)</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>每列幾組欄位 (預設 2)</summary>
+    [Parameter] public int Columns { get; set; } = 2;
+
+    [Parameter] public string SaveText { get; set; } = "存檔";
+
+    private bool saving;
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        try
+        {
+            if (await OnSave())
+            {
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+}

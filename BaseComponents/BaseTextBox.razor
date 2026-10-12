@@ -1,0 +1,44 @@
+@*
+    文字輸入框 (統一外觀、密度)，支援 @bind-Value 與 EditForm 欄位驗證訊息
+    用法：<BaseTextBox @bind-Value="model.Email" InputType="InputType.Email" />
+*@
+<MudTextField T="string"
+              Value="@Value"
+              ValueChanged="@ValueChanged"
+              For="@ValueExpression"
+              InputType="@InputType"
+              Placeholder="@Placeholder"
+              ReadOnly="@ReadOnly"
+              Disabled="@Disabled"
+              MaxLength="@MaxLength"
+              Variant="Variant.Outlined"
+              Margin="Margin.Dense"
+              Immediate="true"
+              Class="@($"base-input {Class}".Trim())"
+              UserAttributes="@AdditionalAttributes" />
+
+@code {
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>由 @bind-Value 自動帶入，用於在欄位下方顯示驗證訊息</summary>
+    [Parameter] public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    /// <summary>Text、Password、Email 等</summary>
+    [Parameter] public InputType InputType { get; set; } = InputType.Text;
+
+    [Parameter] public string? Placeholder { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public int MaxLength { get; set; } = 524288;
+
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>其他 HTML 屬性 (例如 autocomplete) 會加到輸入框外層</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+}

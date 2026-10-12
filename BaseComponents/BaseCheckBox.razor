@@ -1,0 +1,31 @@
+@*
+    核取方塊
+    用法：<BaseCheckBox @bind-Value="model.IsActive" Label="啟用此使用者" />
+*@
+<MudCheckBox T="bool"
+             Value="@Value"
+             ValueChanged="@ValueChanged"
+             For="@ValueExpression"
+             Label="@Label"
+             Disabled="@Disabled"
+             ReadOnly="@ReadOnly"
+             Color="Color.Primary"
+             Dense="true"
+             Size="Size.Small"
+             Class="@($"base-checkbox {Class}".Trim())" />
+
+@code {
+    [Parameter] public bool Value { get; set; }
+
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<bool>>? ValueExpression { get; set; }
+
+    [Parameter] public string? Label { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+}
