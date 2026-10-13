@@ -331,6 +331,53 @@ Check("最後一欄按 Enter 移到儲存按鈕", await Eventually(async () => (
 await page.Keyboard.PressAsync("Enter");
 Check("在儲存按鈕按 Enter 送出、驗證通過", await ToastHas("驗證通過"), await page.Locator(".base-keyboard-nav").InnerTextAsync());
 
+// ---------- 儲存到 CMSData ----------
+string? CmsValue(string pageName, string column) =>
+    Sql($"SELECT TOP 1 CONVERT(nvarchar(1024), {column}, 23) FROM CMSData WHERE PageName = N'{pageName}' ORDER BY CreateDate DESC") as string;
+int CmsCount(string pageName) => Convert.ToInt32(Sql($"SELECT COUNT(*) FROM CMSData WHERE PageName = N'{pageName}'"));
+
+Check("CMSData 新增 1 筆", await Eventually(async () => { await Task.CompletedTask; return CmsCount("ComponentGallery") == 1; }));
+Check("CMSData：帳號存在 SX01", CmsValue("ComponentGallery", "SX01") == "demo", CmsValue("ComponentGallery", "SX01") ?? "null");
+Check("CMSData：金額以固定格式存在 SX07", CmsValue("ComponentGallery", "SX07") == "1234567.89", CmsValue("ComponentGallery", "SX07") ?? "null");
+Check("CMSData：是否以 Y/N 存在 SX09", CmsValue("ComponentGallery", "SX09") == "Y", CmsValue("ComponentGallery", "SX09") ?? "null");
+Check("CMSData：民國日期以西元存在 DA02 (DATE)", CmsValue("ComponentGallery", "DA02") == "2026-10-14", CmsValue("ComponentGallery", "DA02") ?? "null");
+Check("CMSData：中文地址", CmsValue("ComponentGallery", "SX18") == "新北市板橋區忠孝東路一段1號", CmsValue("ComponentGallery", "SX18") ?? "null");
+Check("CMSData：密碼不儲存", Convert.ToInt32(Sql("SELECT COUNT(*) FROM CMSData WHERE PageName = N'ComponentGallery' AND (SX19 IS NOT NULL OR SX20 IS NOT NULL)")) == 0);
+Check("CMSData：建立時間有值、修改時間為空", CmsValue("ComponentGallery", "ModifiedDate") is null && CmsValue("ComponentGallery", "CreateDate") is not null);
+
+var savedGrid = page.Locator("table.base-grid").First;
+Check("已儲存清單顯示 1 筆", await Eventually(async () => (await savedGrid.InnerTextAsync()).Contains("demo")));
+
+// 重新整理頁面後仍在 (確實存在資料庫)
+await page.ReloadAsync();
+await Field("帳號").WaitForAsync();
+savedGrid = page.Locator("table.base-grid").First;
+Check("重新整理後已儲存清單仍在", await Eventually(async () => (await savedGrid.InnerTextAsync()).Contains("demo")));
+Check("重新整理後表單為新增模式", await page.GetByText("新增模式").IsVisibleAsync());
+
+// 載入 → 修改 → 儲存 (更新同一筆)
+await Button("載入", savedGrid.Locator("tr", new() { HasText = "demo" })).ClickAsync();
+Check("載入後欄位帶出資料", await Eventually(async () => await Field("帳號").InputValueAsync() == "demo"));
+Check("載入後顯示千分位金額", await Eventually(async () => await Field("金額").InputValueAsync() == "1,234,567.89"), await Field("金額").InputValueAsync());
+Check("載入後民國日期", await Field("日期（民國）").InputValueAsync() == "115/10/14", await Field("日期（民國）").InputValueAsync());
+Check("載入後為修改模式", await page.GetByText("修改模式").IsVisibleAsync());
+await Field("帳號").FillAsync("demo2");
+await Field("帳號").PressAsync("Tab");
+await page.WaitForTimeoutAsync(300);
+await Button("儲存(Y)").ClickAsync();
+Check("修改成功", await ToastHas("已更新 CMSData"));
+Check("修改後仍為 1 筆", CmsCount("ComponentGallery") == 1);
+Check("CMSData：帳號已更新", await Eventually(async () => { await Task.CompletedTask; return CmsValue("ComponentGallery", "SX01") == "demo2"; }), CmsValue("ComponentGallery", "SX01") ?? "null");
+Check("CMSData：修改時間有值", CmsValue("ComponentGallery", "ModifiedDate") is not null);
+
+// 刪除
+await Button("刪除", savedGrid.Locator("tr", new() { HasText = "demo2" })).ClickAsync();
+var galleryConfirm = Dialog();
+await galleryConfirm.Locator("fluent-button").First.WaitForAsync();
+await Button("刪除", galleryConfirm).ClickAsync();
+Check("刪除後 CMSData 無資料", await Eventually(async () => { await Task.CompletedTask; return CmsCount("ComponentGallery") == 0; }));
+Check("刪除後回到新增模式", await Eventually(() => page.GetByText("新增模式").IsVisibleAsync()));
+
 // ---------- 檔案上傳 ----------
 var tmpDir = Path.Combine(Path.GetTempPath(), "uitest-upload");
 Directory.CreateDirectory(tmpDir);
@@ -461,6 +508,27 @@ await Eventually(() => page.Locator(".base-upload-files").GetByText("pst-e2e-bad
 await Button("匯入(I)").ClickAsync();
 Check("匯入檔有錯誤時整批不匯入並標示列號", await Eventually(() => page.Locator(".base-upload-result.error").GetByText("第 3 列").IsVisibleAsync()));
 Check("清單仍為 3 筆", await Count() == "3", await Count());
+
+// ---------- 寄件資料存在 CMSData ----------
+Check("CMSData：寄件 3 筆 (畫面 1 + 匯入 2)", CmsCount("ShipmentRegister") == 3, CmsCount("ShipmentRegister").ToString());
+Check("CMSData：寄件人姓名", Convert.ToInt32(Sql("SELECT COUNT(*) FROM CMSData WHERE PageName = N'ShipmentRegister' AND SX01 = N'王小明' AND SX21 = N'畫面'")) == 1);
+Check("CMSData：保價金額 SX17 = 12345、重量 SX16 = 1.25",
+    Convert.ToInt32(Sql("SELECT COUNT(*) FROM CMSData WHERE PageName = N'ShipmentRegister' AND SX17 = N'12345' AND SX16 = N'1.25'")) == 1);
+Check("CMSData：寄件日期 DA01 為今天",
+    Convert.ToInt32(Sql($"SELECT COUNT(*) FROM CMSData WHERE PageName = N'ShipmentRegister' AND SX21 = N'畫面' AND DA01 = '{DateTime.Today:yyyy-MM-dd}'")) == 1);
+Check("CMSData：匯入 2 筆標示來源", Convert.ToInt32(Sql("SELECT COUNT(*) FROM CMSData WHERE PageName = N'ShipmentRegister' AND SX21 = N'匯入'")) == 2);
+
+await page.ReloadAsync();
+await Field("姓名", page.Locator(".base-field-grid").Nth(0)).WaitForAsync();
+Check("重新整理後清單仍為 3 筆", await Eventually(async () => await Count() == "3"), await Count());
+
+var shipmentGrid = page.Locator("table.base-grid");
+await Button("刪除", shipmentGrid.Locator("tr", new() { HasText = "李大華" }).First).ClickAsync();
+var shipmentConfirm = Dialog();
+await shipmentConfirm.Locator("fluent-button").First.WaitForAsync();
+await Button("刪除", shipmentConfirm).ClickAsync();
+Check("刪除後清單 2 筆", await Eventually(async () => await Count() == "2"), await Count());
+Check("刪除後 CMSData 2 筆", CmsCount("ShipmentRegister") == 2);
 
 Console.WriteLine("[8] 選單與登出");
 await page.GetByRole(AriaRole.Link, new() { Name = "首頁" }).ClickAsync();
