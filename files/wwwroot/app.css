@@ -412,3 +412,9 @@ a:hover {
         border-bottom: 1px solid var(--border);
     }
 }
+
+.gallery-editing {
+    align-self: center;
+    margin-right: 8px;
+    color: var(--text-muted);
+}

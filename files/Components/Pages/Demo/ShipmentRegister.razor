@@ -1,20 +1,23 @@
 @page "/demo/shipment"
 @attribute [Authorize]
 @using System.Globalization
+@using BlazorUserManagement.Data.Cms
 @using BlazorUserManagement.Models
 @inject BaseNotifier Notifier
+@inject BaseDialogService Dialog
+@inject CmsDataService CmsData
 @inject IBaseParameterProvider ParameterProvider
 
 @*
     範例畫面：寄件登記
     以底層元件組成完整的輸入畫面，儲存後顯示「登記內容確認」供核對輸入結果
-    資料僅保存在本頁 (重新整理後清除)，不寫入資料庫
+    資料存放在測試資料暫存表 CMSData (PageName = ShipmentRegister)
 *@
 
 <PageTitle>寄件登記 - 使用者管理系統</PageTitle>
 <SectionContent SectionName="breadcrumb">郵件作業 &gt; 寄件登記（範例畫面）</SectionContent>
 
-<div class="msg msg-info">此為範例畫面，登記資料僅保存在本頁（重新整理後清除），不會寫入資料庫。</div>
+<div class="msg msg-info">此為範例畫面，登記資料存放在測試資料暫存表 CMSData（PageName = @ShipmentForm.CmsPageName）。</div>
 
 <EditForm Model="form" OnValidSubmit="SaveAsync" class="base-keyboard-nav">
     <DataAnnotationsValidator />
@@ -111,7 +114,7 @@
                 OnUpload="ImportAsync" />
 
 <div class="section-title">已登記清單</div>
-<BaseDataGrid Items="records" PageSize="10" ColumnWidths="60px 100px 1fr 120px 2fr 110px 60px 90px 110px 70px">
+<BaseDataGrid Items="records" PageSize="10" ColumnWidths="60px 100px 1fr 120px 2fr 110px 60px 90px 110px 70px 110px">
     <Columns>
         <PropertyColumn Property="x => x.No" Title="編號" Align="Align.Center" />
         <TemplateColumn Title="寄件日期" Align="Align.Center" Context="r">@BaseDateFormat.ToRoc(r.ShipDate)</TemplateColumn>
@@ -123,6 +126,9 @@
         <TemplateColumn Title="重量" Align="Align.End" Context="r">@BaseNumberFormat.Format(r.WeightKg, 3)</TemplateColumn>
         <TemplateColumn Title="保價金額" Align="Align.End" Context="r">@BaseNumberFormat.Format(r.InsuredAmount, 0)</TemplateColumn>
         <PropertyColumn Property="x => x.Source" Title="來源" Align="Align.Center" />
+        <TemplateColumn Title="操作" Align="Align.Center" Context="r">
+            <BaseButton Text="刪除" AccessKey="" Kind="BaseButtonKind.Danger" Icon="BaseIcon.Delete" OnClick="() => DeleteAsync(r)" />
+        </TemplateColumn>
     </Columns>
 </BaseDataGrid>
 
@@ -141,21 +147,68 @@
 
     private static ShipmentForm NewForm() => new() { ShipDate = DateTime.Today };
 
+    protected override Task OnInitializedAsync() => LoadRecordsAsync();
+
+    /// <summary>
+    /// 從 CMSData 讀取已登記的寄件
+    /// </summary>
+    private async Task LoadRecordsAsync()
+    {
+        var mailTypes = await ParameterProvider.GetOptionsAsync("MAIL_TYPE");
+        var saved = await CmsData.ListAsync<ShipmentForm>(ShipmentForm.CmsPageName);
+
+        records = saved.Select((r, i) => new ShipmentRecord(
+            r.PKey,
+            i + 1,
+            r.Model.ShipDate ?? r.CreateDate.Date,
+            r.Model.ReceiverName ?? string.Empty,
+            r.Model.ReceiverMobile ?? string.Empty,
+            BaseAddress.Format(r.Model.ReceiverCounty, r.Model.ReceiverDistrict, r.Model.ReceiverAddress),
+            mailTypes.FirstOrDefault(o => o.Value == r.Model.MailType)?.Text ?? r.Model.MailType ?? string.Empty,
+            r.Model.Quantity ?? 0,
+            r.Model.WeightKg ?? 0,
+            r.Model.InsuredAmount,
+            r.Model.Source)).ToList();
+    }
+
     private void Reset()
     {
         form = NewForm();
         confirmation = null;
     }
 
+    private bool saving;
+
     private async Task SaveAsync()
+    {
+        // 儲存中忽略重複送出 (避免連點造成重複新增)
+        if (saving)
+        {
+            return;
+        }
+
+        saving = true;
+        try
+        {
+            await SaveCoreAsync();
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task SaveCoreAsync()
     {
         var mailTypeText = await GetParameterTextAsync("MAIL_TYPE", form.MailType);
         var payTypeText = await GetParameterTextAsync("PAY_TYPE", form.PayType);
-        var no = records.Count + 1;
+
+        form.Source = ShipmentForm.SourceScreen;
+        await CmsData.SaveAsync(ShipmentForm.CmsPageName, form);
+        await LoadRecordsAsync();
+        var no = records.Count;
 
         var receiverAddress = BaseAddress.Format(form.ReceiverCounty, form.ReceiverDistrict, form.ReceiverAddress);
-        records = [.. records, new ShipmentRecord(no, form.ShipDate!.Value, form.ReceiverName!, form.ReceiverMobile!,
-            receiverAddress, mailTypeText, form.Quantity!.Value, form.WeightKg!.Value, form.InsuredAmount, "畫面")];
 
         // 以「人看得懂」的格式列出實際收到的內容，供核對輸入是否正確
         confirmation = new Confirmation(no,
@@ -188,25 +241,36 @@
     private async Task<BaseUploadResult> ImportAsync(IReadOnlyList<BaseUploadFile> files)
     {
         var messages = new List<string>();
-        var imported = new List<ShipmentRecord>();
-        var mailTypeText = await GetParameterTextAsync("MAIL_TYPE", "1");
+        var imported = new List<ShipmentForm>();
 
+        // 先檢查全部檔案，任一列有誤時整批不匯入，避免部分匯入造成資料不一致
         foreach (var file in files)
         {
             var (rows, errors) = ShipmentCsvParser.Parse(file.Content, DateTime.Today);
             if (errors.Count > 0)
             {
-                // 任一列有誤時整批不匯入，避免部分匯入造成資料不一致
                 return BaseUploadResult.Fail([$"{file.Name} 有 {errors.Count} 個錯誤，整批未匯入：", .. errors]);
             }
 
-            imported.AddRange(rows.Select((r, i) => new ShipmentRecord(records.Count + imported.Count + i + 1,
-                r.ShipDate, r.ReceiverName, r.ReceiverMobile, r.ReceiverAddress, mailTypeText, r.Quantity, r.WeightKg, null, "匯入")));
+            imported.AddRange(rows.Select(ShipmentForm.FromImport));
             messages.Add($"{file.Name}：匯入 {rows.Count} 筆");
         }
 
-        records = [.. records, .. imported];
+        await CmsData.AddRangeAsync(ShipmentForm.CmsPageName, imported);
+        await LoadRecordsAsync();
         return BaseUploadResult.Ok([.. messages, $"共匯入 {imported.Count} 筆（郵件種類預設為普通包裹）"]);
+    }
+
+    private async Task DeleteAsync(ShipmentRecord record)
+    {
+        if (!await Dialog.ConfirmAsync($"確認要刪除第 {record.No} 筆（收件人：{record.ReceiverName}）嗎？", "刪除確認", "刪除"))
+        {
+            return;
+        }
+
+        await CmsData.DeleteAsync(record.PKey);
+        await LoadRecordsAsync();
+        Notifier.Success("已刪除");
     }
 
     private async Task<string> GetParameterTextAsync(string setItem, string? code)

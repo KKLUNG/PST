@@ -35,6 +35,10 @@ builder.Services.AddScoped<CommonDataService>();
 builder.Services.AddScoped<IBaseParameterProvider>(sp => sp.GetRequiredService<CommonDataService>());
 builder.Services.AddScoped<IBaseAddressProvider>(sp => sp.GetRequiredService<CommonDataService>());
 
+// 測試資料暫存表 CMSData (各畫面以 PageName 區分，欄位對應見 Data/Cms/CmsMapper.cs)
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<BlazorUserManagement.Data.Cms.CmsDataService>();
+
 // ========== 設定驗證與授權 (Cookie) ==========
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

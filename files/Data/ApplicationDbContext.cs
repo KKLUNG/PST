@@ -28,6 +28,11 @@ namespace BlazorUserManagement.Data
         public DbSet<AddressArea> AddressAreas { get; set; }
 
         /// <summary>
+        /// 測試資料暫存表
+        /// </summary>
+        public DbSet<Cms.CmsData> CmsData { get; set; }
+
+        /// <summary>
         /// 設定模型約定
         /// </summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)

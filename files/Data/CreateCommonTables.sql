@@ -1,5 +1,5 @@
 -- ============================================
--- 共用資料表：參數檔、地址 (郵遞區號)
+-- 共用資料表：參數檔、地址 (郵遞區號)、測試資料暫存表 (CMSData)
 -- 供底層元件 BaseParameterSelect、BaseAddress 使用
 -- 可重複執行：資料表不存在才建立，資料不存在才新增 (不會刪除既有資料)
 -- 執行方式：sqlcmd -S 伺服器 -d BlazorUserManagement -f 65001 -i Data\CreateCommonTables.sql
@@ -80,6 +80,114 @@ FROM (VALUES
 WHERE NOT EXISTS (
     SELECT 1 FROM [dbo].[AddressAreas] a WHERE a.County = v.County AND a.District = v.District
 );
+GO
+
+-- 3. 測試資料暫存表 (CMSData)
+--    各畫面共用：以 PageName 區分是哪個畫面的資料，欄位依型別預留
+--      SH01-SH06 NVARCHAR(MAX)  長文字 (備註、說明、JSON)
+--      SX01-SX64 NVARCHAR(1024) 一般文字；數字、是否也以文字存放 (系統以固定格式轉換)
+--      DE01-DE08 DATETIME       日期時間
+--      DA01-DA08 DATE           日期 (不含時間)
+--    畫面欄位與資料表欄位的對應，在程式的表單模型以 [CmsColumn("SX01")] 標註
+IF OBJECT_ID(N'dbo.CMSData', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[CMSData] (
+        [PKey]         UNIQUEIDENTIFIER NOT NULL CONSTRAINT [DF_CMSData_PKey] DEFAULT NEWSEQUENTIALID(),
+        [PageName]     NVARCHAR(256)    NOT NULL,
+        [SH01]         NVARCHAR(MAX)    NULL,
+        [SH02]         NVARCHAR(MAX)    NULL,
+        [SH03]         NVARCHAR(MAX)    NULL,
+        [SH04]         NVARCHAR(MAX)    NULL,
+        [SH05]         NVARCHAR(MAX)    NULL,
+        [SH06]         NVARCHAR(MAX)    NULL,
+        [SX01]         NVARCHAR(1024)   NULL,
+        [SX02]         NVARCHAR(1024)   NULL,
+        [SX03]         NVARCHAR(1024)   NULL,
+        [SX04]         NVARCHAR(1024)   NULL,
+        [SX05]         NVARCHAR(1024)   NULL,
+        [SX06]         NVARCHAR(1024)   NULL,
+        [SX07]         NVARCHAR(1024)   NULL,
+        [SX08]         NVARCHAR(1024)   NULL,
+        [SX09]         NVARCHAR(1024)   NULL,
+        [SX10]         NVARCHAR(1024)   NULL,
+        [SX11]         NVARCHAR(1024)   NULL,
+        [SX12]         NVARCHAR(1024)   NULL,
+        [SX13]         NVARCHAR(1024)   NULL,
+        [SX14]         NVARCHAR(1024)   NULL,
+        [SX15]         NVARCHAR(1024)   NULL,
+        [SX16]         NVARCHAR(1024)   NULL,
+        [SX17]         NVARCHAR(1024)   NULL,
+        [SX18]         NVARCHAR(1024)   NULL,
+        [SX19]         NVARCHAR(1024)   NULL,
+        [SX20]         NVARCHAR(1024)   NULL,
+        [SX21]         NVARCHAR(1024)   NULL,
+        [SX22]         NVARCHAR(1024)   NULL,
+        [SX23]         NVARCHAR(1024)   NULL,
+        [SX24]         NVARCHAR(1024)   NULL,
+        [SX25]         NVARCHAR(1024)   NULL,
+        [SX26]         NVARCHAR(1024)   NULL,
+        [SX27]         NVARCHAR(1024)   NULL,
+        [SX28]         NVARCHAR(1024)   NULL,
+        [SX29]         NVARCHAR(1024)   NULL,
+        [SX30]         NVARCHAR(1024)   NULL,
+        [SX31]         NVARCHAR(1024)   NULL,
+        [SX32]         NVARCHAR(1024)   NULL,
+        [SX33]         NVARCHAR(1024)   NULL,
+        [SX34]         NVARCHAR(1024)   NULL,
+        [SX35]         NVARCHAR(1024)   NULL,
+        [SX36]         NVARCHAR(1024)   NULL,
+        [SX37]         NVARCHAR(1024)   NULL,
+        [SX38]         NVARCHAR(1024)   NULL,
+        [SX39]         NVARCHAR(1024)   NULL,
+        [SX40]         NVARCHAR(1024)   NULL,
+        [SX41]         NVARCHAR(1024)   NULL,
+        [SX42]         NVARCHAR(1024)   NULL,
+        [SX43]         NVARCHAR(1024)   NULL,
+        [SX44]         NVARCHAR(1024)   NULL,
+        [SX45]         NVARCHAR(1024)   NULL,
+        [SX46]         NVARCHAR(1024)   NULL,
+        [SX47]         NVARCHAR(1024)   NULL,
+        [SX48]         NVARCHAR(1024)   NULL,
+        [SX49]         NVARCHAR(1024)   NULL,
+        [SX50]         NVARCHAR(1024)   NULL,
+        [SX51]         NVARCHAR(1024)   NULL,
+        [SX52]         NVARCHAR(1024)   NULL,
+        [SX53]         NVARCHAR(1024)   NULL,
+        [SX54]         NVARCHAR(1024)   NULL,
+        [SX55]         NVARCHAR(1024)   NULL,
+        [SX56]         NVARCHAR(1024)   NULL,
+        [SX57]         NVARCHAR(1024)   NULL,
+        [SX58]         NVARCHAR(1024)   NULL,
+        [SX59]         NVARCHAR(1024)   NULL,
+        [SX60]         NVARCHAR(1024)   NULL,
+        [SX61]         NVARCHAR(1024)   NULL,
+        [SX62]         NVARCHAR(1024)   NULL,
+        [SX63]         NVARCHAR(1024)   NULL,
+        [SX64]         NVARCHAR(1024)   NULL,
+        [DE01]         DATETIME         NULL,
+        [DE02]         DATETIME         NULL,
+        [DE03]         DATETIME         NULL,
+        [DE04]         DATETIME         NULL,
+        [DE05]         DATETIME         NULL,
+        [DE06]         DATETIME         NULL,
+        [DE07]         DATETIME         NULL,
+        [DE08]         DATETIME         NULL,
+        [DA01]         DATE             NULL,
+        [DA02]         DATE             NULL,
+        [DA03]         DATE             NULL,
+        [DA04]         DATE             NULL,
+        [DA05]         DATE             NULL,
+        [DA06]         DATE             NULL,
+        [DA07]         DATE             NULL,
+        [DA08]         DATE             NULL,
+        [CreateDate]   DATETIME         NOT NULL CONSTRAINT [DF_CMSData_CreateDate] DEFAULT GETDATE(),
+        [ModifiedDate] DATETIME         NULL,
+        CONSTRAINT [PK_CMSData] PRIMARY KEY ([PKey])
+    );
+
+    -- 依畫面查詢、依建立時間排序
+    CREATE INDEX [IX_CMSData_PageName] ON [dbo].[CMSData] ([PageName], [CreateDate]);
+END
 GO
 
 PRINT '========== 共用資料表建立完成 =========='

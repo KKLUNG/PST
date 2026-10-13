@@ -1,9 +1,11 @@
 @page "/dev/components"
 @attribute [Authorize]
-@using System.ComponentModel.DataAnnotations
 @using System.Text.Json
+@using BlazorUserManagement.Data.Cms
+@using BlazorUserManagement.Models
 @inject BaseNotifier Notifier
 @inject BaseDialogService Dialog
+@inject CmsDataService CmsData
 
 @*
     底層元件展示：列出所有基礎元件的外觀與用法，供開發時參考
@@ -82,10 +84,27 @@
         </BaseField>
     </div>
     <div class="base-button-bar">
+        <span class="gallery-editing">@(editingKey is null ? "新增模式" : "修改模式（已載入的資料）")</span>
         <BaseButton Text="儲存" Kind="BaseButtonKind.Primary" Icon="BaseIcon.Save" ButtonType="ButtonType.Submit" />
         <BaseButton Text="重設" Icon="BaseIcon.Reset" OnClick="Reset" />
     </div>
 </EditForm>
+
+<div class="section-title">已儲存的資料（CMSData，PageName = @ComponentDemoForm.CmsPageName）</div>
+<BaseDataGrid Items="saved" PageSize="5" ColumnWidths="150px 150px 1fr 1fr 140px 140px 200px" EmptyText="尚無資料，填寫上方表單後按「儲存」">
+    <Columns>
+        <TemplateColumn Title="建立時間" Context="r">@r.CreateDate.ToString("yyyy/MM/dd HH:mm:ss")</TemplateColumn>
+        <TemplateColumn Title="修改時間" Context="r">@(r.ModifiedDate?.ToString("yyyy/MM/dd HH:mm:ss") ?? "-")</TemplateColumn>
+        <TemplateColumn Title="帳號" Context="r">@r.Model.UserId</TemplateColumn>
+        <TemplateColumn Title="地址" Context="r">@r.Model.FullAddress</TemplateColumn>
+        <TemplateColumn Title="金額" Align="Align.End" Context="r">@BaseNumberFormat.Format(r.Model.Amount, 2, fixedDecimals: true)</TemplateColumn>
+        <TemplateColumn Title="日期（民國）" Align="Align.Center" Context="r">@BaseDateFormat.ToRoc(r.Model.RocDate)</TemplateColumn>
+        <TemplateColumn Title="操作" Align="Align.Center" Context="r">
+            <BaseButton Text="載入" AccessKey="" Icon="BaseIcon.Edit" OnClick="() => LoadAsync(r.PKey)" />
+            <BaseButton Text="刪除" AccessKey="" Kind="BaseButtonKind.Danger" Icon="BaseIcon.Delete" OnClick="() => DeleteSavedAsync(r.PKey)" />
+        </TemplateColumn>
+    </Columns>
+</BaseDataGrid>
 
 <div class="section-title">檔案上傳（批次匯入）</div>
 <BaseFileUpload Accept=".csv" Multiple="true" MaxFileSizeMB="5"
@@ -153,13 +172,80 @@
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
-    private DemoModel model = new();
+    private ComponentDemoForm model = new();
+
+    /// <summary>目前編輯中的資料 (null 表示新增)</summary>
+    private Guid? editingKey;
+
+    private List<CmsRecord<ComponentDemoForm>> saved = [];
 
     private string CurrentValues => JsonSerializer.Serialize(model, jsonOptions);
 
-    private void SaveAsync() => Notifier.Success("驗證通過，資料已儲存（示範）");
+    protected override Task OnInitializedAsync() => LoadSavedAsync();
 
-    private void Reset() => model = new DemoModel();
+    private async Task LoadSavedAsync() =>
+        saved = await CmsData.ListAsync<ComponentDemoForm>(ComponentDemoForm.CmsPageName);
+
+    private bool saving;
+
+    private async Task SaveAsync()
+    {
+        // 儲存中忽略重複送出 (避免連點造成重複新增)
+        if (saving)
+        {
+            return;
+        }
+
+        saving = true;
+        try
+        {
+            var isNew = editingKey is null;
+            editingKey = await CmsData.SaveAsync(ComponentDemoForm.CmsPageName, model, editingKey);
+            await LoadSavedAsync();
+            Notifier.Success(isNew ? "驗證通過，已新增到 CMSData" : "驗證通過，已更新 CMSData");
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void Reset()
+    {
+        model = new ComponentDemoForm();
+        editingKey = null;
+    }
+
+    private async Task LoadAsync(Guid pkey)
+    {
+        var record = await CmsData.GetAsync<ComponentDemoForm>(pkey);
+        if (record is null)
+        {
+            Notifier.Warning("資料已不存在");
+            await LoadSavedAsync();
+            return;
+        }
+
+        model = record.Model;
+        editingKey = pkey;
+        Notifier.Info("已載入資料，修改後按「儲存」會更新這一筆");
+    }
+
+    private async Task DeleteSavedAsync(Guid pkey)
+    {
+        if (!await Dialog.ConfirmAsync("確認要刪除這筆資料嗎？", "刪除確認", "刪除"))
+        {
+            return;
+        }
+
+        await CmsData.DeleteAsync(pkey);
+        if (editingKey == pkey)
+        {
+            Reset();
+        }
+        await LoadSavedAsync();
+        Notifier.Success("已刪除");
+    }
 
     private void Clicked(string text) => Notifier.Info($"按下「{text}」");
 
@@ -175,73 +261,6 @@
     {
         await Task.Delay(2000);
         Notifier.Success("處理完成");
-    }
-
-    /// <summary>
-    /// 示範用資料模型 (驗證規則以 DataAnnotations 設定)
-    /// </summary>
-    private class DemoModel
-    {
-        [Required(ErrorMessage = "請輸入帳號")]
-        [StringLength(10, MinimumLength = 3, ErrorMessage = "帳號長度須為 3-10 個字元")]
-        public string? UserId { get; set; }
-
-        [Required(ErrorMessage = "請輸入局號")]
-        [RegularExpression(@"^\d{6}$", ErrorMessage = "局號須為 6 位數字")]
-        public string? BranchNo { get; set; }
-
-        public string? ProductCode { get; set; }
-
-        public string? Password { get; set; }
-
-        [Required(ErrorMessage = "請選擇單位")]
-        public string? Unit { get; set; }
-
-        public bool? Status { get; set; }
-
-        [Range(1, 9999, ErrorMessage = "數量須介於 1-9999")]
-        public int? Qty { get; set; }
-
-        [Range(0, 100000000, ErrorMessage = "金額不可為負數")]
-        public decimal? Amount { get; set; }
-
-        [Required(ErrorMessage = "請選擇日期")]
-        public DateTime? AdDate { get; set; }
-
-        public DateTime? RocDate { get; set; }
-
-        public string Gender { get; set; } = "M";
-
-        public bool Agree { get; set; }
-
-        [Required(ErrorMessage = "請選擇付款方式")]
-        public string? PayType { get; set; }
-
-        public string? ParamUnit { get; set; }
-
-        public DateTime? StartDate { get; set; }
-
-        public DateTime? EndDate { get; set; }
-
-        [BaseMobile]
-        public string? Mobile { get; set; }
-
-        [BaseTelephone]
-        public string? Tel { get; set; }
-
-        public string? County { get; set; }
-
-        public string? District { get; set; }
-
-        public string? ZipCode { get; set; }
-
-        [Required(ErrorMessage = "請輸入地址")]
-        public string? AddressDetail { get; set; }
-
-        public string? FullAddress { get; set; }
-
-        [StringLength(200, ErrorMessage = "備註最多 200 個字元")]
-        public string? Remark { get; set; }
     }
 
     /// <summary>
