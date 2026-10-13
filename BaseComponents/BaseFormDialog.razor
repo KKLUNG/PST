@@ -41,6 +41,12 @@
 
     private async Task SaveAsync()
     {
+        // 儲存中忽略重複送出 (避免連點造成重複新增)
+        if (saving)
+        {
+            return;
+        }
+
         saving = true;
         try
         {

@@ -68,6 +68,19 @@
         }
 
         const target = e.target;
+
+        // 在按鈕上按 Enter：Fluent 按鈕與瀏覽器內建行為會各觸發一次，造成表單送出兩次 (資料重複新增)
+        // 攔截後只觸發一次點擊
+        const button = target.closest && target.closest('fluent-button');
+        if (button) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!e.repeat && !button.hasAttribute('disabled')) {
+                button.click();
+            }
+            return;
+        }
+
         const container = target.closest && target.closest('.base-keyboard-nav');
         if (!container) {
             return;
